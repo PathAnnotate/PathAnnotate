@@ -1,0 +1,1993 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PathAnnotate</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    :root {
+      --bg: #0f0f10;
+      --surface: #1a1a1c;
+      --border: #2a2a2e;
+      --accent: #00e5c3;
+      --accent-dim: rgba(0, 229, 195, 0.12);
+      --text: #e8e8ea;
+      --muted: #5a5a62;
+      --danger: #e03535;
+      --inp: #0f0f10;
+      --grid: rgba(255, 255, 255, 0.025);
+      --cvbg: #080809;
+    }
+
+    body.light {
+      --bg: #f0f0f1;
+      --surface: #ffffff;
+      --border: #d8d8dc;
+      --accent: #009e88;
+      --accent-dim: rgba(0, 158, 136, 0.10);
+      --text: #18181b;
+      --muted: #7a7a84;
+      --danger: #c92020;
+      --inp: #f0f0f1;
+      --grid: rgba(0, 0, 0, 0.045);
+      --cvbg: #dcdcdf;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: background .2s, color .2s
+    }
+
+    /* HEADER */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      height: 44px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--surface)
+    }
+
+    .logo {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: .15em;
+      color: var(--accent);
+      text-transform: uppercase
+    }
+
+    .logo span {
+      color: var(--muted)
+    }
+
+    .hdr-r {
+      display: flex;
+      align-items: center;
+      gap: 7px
+    }
+
+    .hdr-info {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 3px 9px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      transition: all .15s
+    }
+
+    .pill:hover {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    .pill:disabled {
+      opacity: .28;
+      cursor: default;
+      pointer-events: none
+    }
+
+    /* LAYOUT */
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 222px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 10px 8px;
+      gap: 4px;
+      flex-shrink: 0;
+      background: var(--surface);
+      overflow-y: auto
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 3px
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px
+    }
+
+    .slabel {
+      font-family: 'DM Mono', monospace;
+      font-size: 8.5px;
+      letter-spacing: .2em;
+      color: var(--muted);
+      text-transform: uppercase;
+      padding: 0 2px;
+      margin-top: 7px;
+      margin-bottom: 1px
+    }
+
+    .slabel:first-child {
+      margin-top: 0
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 9px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .15s;
+      width: 100%;
+      text-align: left
+    }
+
+    .btn:hover {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    .btn.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    .btn svg {
+      flex-shrink: 0
+    }
+
+    .btn-danger {
+      border-color: rgba(224, 53, 53, .3);
+      color: var(--danger)
+    }
+
+    .btn-danger:hover {
+      background: rgba(200, 30, 30, .08);
+      border-color: var(--danger);
+      color: var(--danger)
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 500;
+      justify-content: center
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1)
+    }
+
+    .btn-flat {
+      background: var(--bg);
+      border-color: var(--border);
+      justify-content: center;
+      font-size: 11px
+    }
+
+    .kbdtag {
+      margin-left: auto;
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 1px 4px
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 2px 0
+    }
+
+    /* COLOR SWATCHES */
+    .color-row {
+      display: flex;
+      gap: 5px;
+      padding: 2px 2px;
+      flex-wrap: wrap
+    }
+
+    .swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform .1s, border-color .1s;
+      position: relative
+    }
+
+    .swatch:hover {
+      transform: scale(1.18)
+    }
+
+    .swatch.active::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 6px;
+      border: 2px solid var(--accent)
+    }
+
+    .swatch[data-border] {
+      border-color: var(--border)
+    }
+
+    /* SLIDERS */
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 2px 2px
+    }
+
+    .slider-lbl {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer
+    }
+
+    /* BLOCK LABEL */
+    .blk-row {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 2px
+    }
+
+    .blk-input {
+      flex: 1;
+      min-width: 0;
+      background: var(--inp);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 5px;
+      padding: 4px 6px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      outline: none;
+      transition: border-color .15s
+    }
+
+    .blk-input:focus {
+      border-color: var(--accent)
+    }
+
+    .spin {
+      width: 24px;
+      height: 27px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all .15s;
+      padding: 0;
+      font-family: 'DM Mono', monospace;
+      line-height: 1
+    }
+
+    .spin:hover {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    .blk-hint {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      color: var(--muted);
+      padding: 0 2px;
+      line-height: 1.5
+    }
+
+    /* CHECKBOXES */
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 2px;
+      cursor: pointer
+    }
+
+    .check-row input[type=checkbox] {
+      accent-color: var(--accent);
+      width: 13px;
+      height: 13px;
+      cursor: pointer
+    }
+
+    .check-row span {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace
+    }
+
+    /* ANCHOR GRID */
+    .anchor-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      padding: 1px 2px
+    }
+
+    .anchor-cell {
+      height: 22px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      cursor: pointer;
+      transition: all .1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .anchor-cell:hover {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    .anchor-cell.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    /* LINE STYLE TOGGLE */
+    .line-style-row {
+      display: flex;
+      gap: 4px;
+      padding: 1px 2px
+    }
+
+    .lstyle-btn {
+      flex: 1;
+      padding: 5px 4px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      transition: all .15s;
+      text-align: center
+    }
+
+    .lstyle-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    .lstyle-btn.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent)
+    }
+
+    /* CANVAS */
+    .canvas-area {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      background: var(--cvbg);
+      background-image: linear-gradient(var(--grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 40px 40px;
+      transition: background .2s
+    }
+
+    .drop-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      text-align: center;
+      padding: 40px
+    }
+
+    .drop-zone svg {
+      opacity: .22;
+      color: var(--muted)
+    }
+
+    .drop-zone h2 {
+      font-size: 17px;
+      font-weight: 300;
+      color: var(--text);
+      opacity: .45
+    }
+
+    .drop-zone p {
+      font-size: 12px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted)
+    }
+
+    .upload-btn-large {
+      padding: 8px 20px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all .15s;
+      margin-top: 5px
+    }
+
+    .upload-btn-large:hover {
+      filter: brightness(1.1)
+    }
+
+    #canvas-wrapper {
+      display: none
+    }
+
+    #main-canvas {
+      display: block
+    }
+
+    /* STATUS BAR */
+    .statusbar {
+      height: 23px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 11px;
+      gap: 16px;
+      flex-shrink: 0;
+      background: var(--surface)
+    }
+
+    .stat {
+      font-family: 'DM Mono', monospace;
+      font-size: 9.5px;
+      color: var(--muted)
+    }
+
+    .stat span {
+      color: var(--text)
+    }
+
+    /* ANNOTATION LIST */
+    .annot-list {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-height: 180px
+    }
+
+    .annot-list::-webkit-scrollbar {
+      width: 3px
+    }
+
+    .annot-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px
+    }
+
+    .ann-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 5px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      transition: all .1s;
+      user-select: none
+    }
+
+    .ann-item:hover {
+      background: var(--accent-dim);
+      color: var(--text)
+    }
+
+    .ann-item.sel {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      color: var(--text)
+    }
+
+    .ann-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      border: 1px solid var(--border)
+    }
+
+    .ann-del {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 2px;
+      display: flex;
+      opacity: 0;
+      transition: opacity .1s
+    }
+
+    .ann-item:hover .ann-del {
+      opacity: 1
+    }
+
+    .ann-del:hover {
+      color: var(--danger)
+    }
+
+    /* INLINE EDIT POPUP */
+    .edit-popup {
+      position: fixed;
+      z-index: 300;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 7px;
+      padding: 6px 7px;
+      display: none;
+      gap: 5px;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, .5)
+    }
+
+    .edit-popup.open {
+      display: flex
+    }
+
+    .edit-popup input {
+      background: var(--inp);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      padding: 4px 7px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      outline: none;
+      width: 110px
+    }
+
+    .edit-popup input:focus {
+      border-color: var(--accent)
+    }
+
+    .edit-popup button {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      border-radius: 4px;
+      padding: 4px 9px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 500
+    }
+
+    /* LEGEND MODAL */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .65);
+      z-index: 200;
+      align-items: center;
+      justify-content: center
+    }
+
+    .modal-bg.open {
+      display: flex
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      width: 480px;
+      max-width: 95vw
+    }
+
+    .modal h3 {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 12px;
+      color: var(--text)
+    }
+
+    /* Legend preset chips */
+    .preset-section {
+      margin-bottom: 12px
+    }
+
+    .preset-label {
+      font-size: 9px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .15em;
+      margin-bottom: 6px
+    }
+
+    .preset-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px
+    }
+
+    .preset-chip {
+      padding: 4px 10px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all .15s;
+      line-height: 1.4;
+      text-align: center
+    }
+
+    .preset-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim)
+    }
+
+    .preset-chip.applied {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim)
+    }
+
+    .preset-chip .chip-main {
+      font-weight: 500;
+      font-size: 11px
+    }
+
+    .preset-chip .chip-sub {
+      font-size: 9px;
+      opacity: .6
+    }
+
+    .mf {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-bottom: 8px
+    }
+
+    .mf label {
+      font-size: 9px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .1em
+    }
+
+    .mf input,
+    .mf select {
+      background: var(--inp);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 5px;
+      padding: 5px 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      outline: none
+    }
+
+    .mf input:focus,
+    .mf select:focus {
+      border-color: var(--accent)
+    }
+
+    .mrow {
+      display: flex;
+      gap: 8px
+    }
+
+    .mrow .mf {
+      flex: 1
+    }
+
+    .modal-acts {
+      display: flex;
+      gap: 7px;
+      margin-top: 12px
+    }
+
+    .modal-acts button {
+      flex: 1;
+      padding: 7px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px
+    }
+
+    .m-cancel {
+      background: transparent;
+      color: var(--text)
+    }
+
+    .m-cancel:hover {
+      background: var(--bg)
+    }
+
+    .m-ok {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 500
+    }
+
+    .m-ok:hover {
+      filter: brightness(1.1)
+    }
+
+    .leg-preview {
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 10px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text);
+      margin-bottom: 9px;
+      text-align: center;
+      line-height: 2.1;
+      background: var(--bg)
+    }
+
+    .leg-preview .ctr {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 4px;
+      text-align: center
+    }
+
+    .leg-preview .ctr .leg-left {
+      text-align: left
+    }
+
+    .leg-preview .ctr .leg-right {
+      text-align: right
+    }
+
+    #file-input,
+    #json-input {
+      display: none
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="logo">Path<span>Annotate</span></div>
+    <div class="hdr-r">
+      <button class="pill" id="undo-btn" onclick="doUndo()" disabled>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <polyline points="9 14 4 9 9 4" />
+          <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
+        </svg>Undo
+      </button>
+      <button class="pill" id="redo-btn" onclick="doRedo()" disabled>
+        Redo<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <polyline points="15 14 20 9 15 4" />
+          <path d="M4 20v-7a4 4 0 0 1 4-4h12" />
+        </svg>
+      </button>
+      <div class="hdr-info" id="file-name">no image loaded</div>
+      <button class="pill" onclick="toggleTheme()" id="theme-btn">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>Light
+      </button>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="sidebar">
+
+      <div class="slabel">Image</div>
+      <button class="btn" onclick="document.getElementById('file-input').click()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        Import Image
+      </button>
+
+      <div class="slabel">Tool</div>
+      <button class="btn active" id="tool-rect" onclick="setTool('rect')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+        </svg>
+        Rectangle<span class="kbdtag">R</span>
+      </button>
+      <button class="btn" id="tool-line" onclick="setTool('line')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="5" y1="19" x2="19" y2="5" />
+        </svg>
+        Line<span class="kbdtag">E</span>
+      </button>
+      <button class="btn" id="tool-text" onclick="setTool('text')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="4 7 4 4 20 4 20 7" />
+          <line x1="9" y1="20" x2="15" y2="20" />
+          <line x1="12" y1="4" x2="12" y2="20" />
+        </svg>
+        Text Label<span class="kbdtag">T</span>
+      </button>
+      <button class="btn" id="tool-select" onclick="setTool('select')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 3l14 9-7 1-4 7z" />
+        </svg>
+        Select / Move<span class="kbdtag">S</span>
+      </button>
+
+      <div class="slabel">Block Label</div>
+      <div class="blk-row">
+        <button class="spin" onclick="spinMinus()" title="Shrink / decrement">−</button>
+        <input type="text" class="blk-input" id="block-label" value="1" placeholder="1, 2-4, A">
+        <button class="spin" onclick="spinPlus()" title="Extend range / increment">+</button>
+      </div>
+      <div class="blk-hint">Auto-increment labels — numeric or alpha supported.</div>
+
+      <div class="slabel">Rect Options</div>
+      <label class="check-row">
+        <input type="checkbox" id="show-label" checked>
+        <span>Auto-attach label to rect</span>
+      </label>
+
+      <div class="slabel">Label Anchor</div>
+      <div class="anchor-grid" id="anchor-grid">
+        <div class="anchor-cell active" data-anc="tl">↖</div>
+        <div class="anchor-cell" data-anc="tc">↑</div>
+        <div class="anchor-cell" data-anc="tr">↗</div>
+        <div class="anchor-cell" data-anc="ml">←</div>
+        <div class="anchor-cell" data-anc="mc">·</div>
+        <div class="anchor-cell" data-anc="mr">→</div>
+        <div class="anchor-cell" data-anc="bl">↙</div>
+        <div class="anchor-cell" data-anc="bc">↓</div>
+        <div class="anchor-cell" data-anc="br">↘</div>
+      </div>
+
+      <div class="slabel">Line Style</div>
+      <div class="line-style-row">
+        <button class="lstyle-btn active" id="lstyle-solid" onclick="setLineStyle('solid')">— Solid</button>
+        <button class="lstyle-btn" id="lstyle-dashed" onclick="setLineStyle('dashed')">- - Dashed</button>
+        <button class="lstyle-btn" id="lstyle-dotted" onclick="setLineStyle('dotted')">··· Dotted</button>
+      </div>
+
+      <div class="slabel">Stroke Color</div>
+      <div class="color-row" id="color-row"></div>
+
+      <div class="slabel">Stroke Width</div>
+      <div class="slider-row">
+        <div class="slider-lbl"><span>1px</span><span id="sw-val">2px</span><span>12px</span></div>
+        <input type="range" id="stroke-w" min="1" max="12" value="2">
+      </div>
+
+      <div class="slabel">Text Size</div>
+      <div class="slider-row">
+        <div class="slider-lbl"><span>Sm</span><span id="fs-val">13px</span><span>Lg</span></div>
+        <input type="range" id="font-s" min="8" max="36" value="13">
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="slabel">Orientation Legend</div>
+      <button class="btn" onclick="openLegend()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        Insert Legend…
+      </button>
+
+      <div class="divider"></div>
+
+      <div class="slabel">Annotations <span
+          style="font-size:9px;text-transform:none;letter-spacing:0">(Ctrl/Shift+click)</span></div>
+      <div class="annot-list" id="annot-list"></div>
+
+      <div class="divider"></div>
+      <button class="btn btn-danger" id="del-sel-btn" onclick="deleteSelected()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+        </svg>
+        Delete Selected
+      </button>
+      <button class="btn btn-danger" onclick="clearAll()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+        </svg>
+        Clear All Annotations
+      </button>
+
+      <div class="divider"></div>
+      <div class="slabel">Session</div>
+      <button class="btn btn-flat" onclick="saveSession()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+          <polyline points="17 21 17 13 7 13 7 21" />
+          <polyline points="7 3 7 8 15 8" />
+        </svg>
+        Save (.json)
+      </button>
+      <button class="btn btn-flat" onclick="document.getElementById('json-input').click()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 15v4c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-4M17 9l-5 5-5-5M12 12.8V2.5" />
+        </svg>
+        Load (.json)
+      </button>
+
+      <div class="divider"></div>
+      <button class="btn btn-primary" onclick="exportImg()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Export JPEG
+      </button>
+
+    </div><!-- /sidebar -->
+
+    <div class="canvas-area" id="canvas-area">
+      <div class="drop-zone" id="drop-zone">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <polyline points="21 15 16 10 5 21" />
+        </svg>
+        <h2>No image loaded</h2>
+        <p>Import a gross specimen photo to begin</p>
+        <button class="upload-btn-large" onclick="document.getElementById('file-input').click()">Choose Image</button>
+        <p style="font-size:11px;margin-top:4px;">or drag and drop here</p>
+      </div>
+      <div id="canvas-wrapper"><canvas id="main-canvas"></canvas></div>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <div class="stat">Tool: <span id="st-tool">Rectangle</span></div>
+    <div class="stat">Objects: <span id="st-count">0</span></div>
+    <div class="stat" id="st-dims"></div>
+    <div class="stat" style="margin-left:auto">R=Rect · E=Line · T=Text · S=Select · Del=Delete · Ctrl+Z/Y=Undo/Redo ·
+      DblClick=Edit</div>
+  </div>
+
+  <!-- Inline label editor -->
+  <div class="edit-popup" id="edit-popup">
+    <input type="text" id="edit-input" placeholder="Label…">
+    <button onclick="commitEdit()">✓</button>
+  </div>
+
+  <!-- Legend modal -->
+  <div class="modal-bg" id="legend-modal">
+    <div class="modal">
+      <h3>Insert Orientation Legend</h3>
+
+      <!-- Quick presets — clicking fills the fields AND previews immediately -->
+      <div class="preset-section">
+        <div class="preset-label">Quick Presets — click to apply</div>
+        <div class="preset-chips" id="preset-chips">
+          <!-- built by JS -->
+        </div>
+      </div>
+
+      <div class="mrow">
+        <div class="mf"><label>Superior</label><input id="leg-s" value="Superior" oninput="refreshPreview()"></div>
+        <div class="mf"><label>Inferior</label><input id="leg-i" value="Inferior" oninput="refreshPreview()"></div>
+      </div>
+      <div class="mrow">
+        <div class="mf"><label>Left</label><input id="leg-l" value="Anterior" oninput="refreshPreview()"></div>
+        <div class="mf"><label>Right</label><input id="leg-r" value="Posterior" oninput="refreshPreview()"></div>
+      </div>
+
+      <div class="mrow">
+        <div class="mf"><label>Position</label>
+          <select id="leg-pos">
+            <option value="br">Bottom Right</option>
+            <option value="bl">Bottom Left</option>
+            <option value="tr">Top Right</option>
+            <option value="tl">Top Left</option>
+          </select>
+        </div>
+        <div class="mf"><label>Text Color</label>
+          <select id="leg-col">
+            <option value="#ffffff">White</option>
+            <option value="#000000">Black</option>
+            <option value="#00e5c3">Teal</option>
+            <option value="#ff4444">Red</option>
+            <option value="#ff9900">Orange</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="leg-preview" id="leg-preview"></div>
+
+      <div class="modal-acts">
+        <button class="m-cancel" onclick="closeLegend()">Cancel</button>
+        <button class="m-ok" onclick="insertLegend()">Insert Legend</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="file-input" accept="image/*">
+  <input type="file" id="json-input" accept=".json">
+
+  <script>
+    'use strict';
+    // ═══════════════════════════════════════════════════════
+    //  CONFIG
+    // ═══════════════════════════════════════════════════════
+
+    // Professional pathology colors — visible on tissue photography
+    const COLORS = ['#00d4b8', '#e03535', '#ff8c00', '#ffffff', '#000000'];
+    // teal, red, orange, white, black
+
+    // Legend presets
+    const LEGEND_PRESETS = [
+      { label: 'Standard', sub: 'Sup/Inf + Ant/Post', s: 'Superior', i: 'Inferior', l: 'Anterior', r: 'Posterior' },
+      { label: 'Lateral', sub: 'Sup/Inf + Med/Lat', s: 'Superior', i: 'Inferior', l: 'Medial', r: 'Lateral' },
+      { label: 'Axial', sub: 'Ant/Post + R/L', s: 'Anterior', i: 'Posterior', l: 'Right', r: 'Left' },
+      { label: 'Coronal', sub: 'Sup/Inf + R/L', s: 'Superior', i: 'Inferior', l: 'Right', r: 'Left' },
+      { label: 'Proximal', sub: 'Prox/Dist + Med/Lat', s: 'Proximal', i: 'Distal', l: 'Medial', r: 'Lateral' },
+      { label: 'Radial', sub: 'Rad/Uln + Dors/Volar', s: 'Radial', i: 'Ulnar', l: 'Dorsal', r: 'Volar' },
+    ];
+
+    // Dash patterns for fabric
+    const DASH_PATTERNS = {
+      solid: null,
+      dashed: [10, 6],
+      dotted: [2, 5],
+    };
+
+    // ═══════════════════════════════════════════════════════
+    //  STATE
+    // ═══════════════════════════════════════════════════════
+    let cv;
+    let tool = 'rect';
+    let color = COLORS[0];
+    let strokeW = 2;
+    let fontSize = 13;
+    let anchor = 'tl';
+    let lineStyle = 'solid';
+
+    let drawing = false, ox = 0, oy = 0, activeObj = null;
+    let annots = [];   // {id, shape, lbl, color, label, kind}
+    let annId = 0;
+    let selectedIds = new Set(); // ids selected in sidebar list
+
+    let undoStack = [], redoStack = [], histLock = false;
+    let imgDataURL = null;
+
+    // ═══════════════════════════════════════════════════════
+    //  THEME
+    // ═══════════════════════════════════════════════════════
+    let dark = true;
+    function toggleTheme() {
+      dark = !dark;
+      document.body.classList.toggle('light', !dark);
+      document.getElementById('theme-btn').innerHTML = dark
+        ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>Light`
+        : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>Dark`;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  COLOR SWATCHES
+    // ═══════════════════════════════════════════════════════
+    (function buildSwatches() {
+      const row = document.getElementById('color-row');
+      COLORS.forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'swatch' + (c === color ? ' active' : '');
+        el.style.background = c;
+        el.title = c;
+        if (c === '#000000' || c === '#ffffff') el.dataset.border = '1';
+        el.onclick = () => {
+          document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+          el.classList.add('active');
+          color = c;
+          if (!cv) return;
+          const obj = cv.getActiveObject();
+          if (!obj || obj._bg) return;
+          if (obj._kind === 'rect' || obj._kind === 'line') {
+            obj.set('stroke', c);
+            const a = annots.find(a => a.shape === obj);
+            if (a) { a.color = c; if (a.lbl) a.lbl.set('fill', c); }
+          } else if (obj._kind === 'text' || obj._kind === 'lbl') {
+            obj.set('fill', c);
+            const a = annots.find(a => a.shape === obj || a.lbl === obj);
+            if (a) a.color = c;
+          }
+          cv.renderAll(); refreshList();
+        };
+        row.appendChild(el);
+      });
+    })();
+
+    // ═══════════════════════════════════════════════════════
+    //  STROKE WIDTH SLIDER
+    // ═══════════════════════════════════════════════════════
+    document.getElementById('stroke-w').addEventListener('input', function () {
+      strokeW = +this.value;
+      document.getElementById('sw-val').textContent = strokeW + 'px';
+      if (!cv) return;
+      const obj = cv.getActiveObject();
+      if (obj && !obj._bg && (obj._kind === 'rect' || obj._kind === 'line')) {
+        obj.set('strokeWidth', strokeW);
+        cv.renderAll();
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════
+    //  FONT SIZE SLIDER
+    // ═══════════════════════════════════════════════════════
+    document.getElementById('font-s').addEventListener('input', function () {
+      fontSize = +this.value;
+      document.getElementById('fs-val').textContent = fontSize + 'px';
+      if (!cv) return;
+      const obj = cv.getActiveObject();
+      if (obj && !obj._bg && (obj._kind === 'text' || obj._kind === 'lbl')) {
+        obj.set('fontSize', fontSize);
+        cv.renderAll();
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════
+    //  LINE STYLE
+    // ═══════════════════════════════════════════════════════
+    function setLineStyle(style) {
+      lineStyle = style;
+      ['solid', 'dashed', 'dotted'].forEach(s => {
+        document.getElementById('lstyle-' + s).classList.toggle('active', s === style);
+      });
+      if (!cv) return;
+      const obj = cv.getActiveObject();
+      if (obj && !obj._bg && (obj._kind === 'line' || obj._kind === 'rect')) {
+        const dp = DASH_PATTERNS[style];
+        obj.set('strokeDashArray', dp);
+        cv.renderAll();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  ANCHOR GRID
+    // ═══════════════════════════════════════════════════════
+    document.querySelectorAll('.anchor-cell').forEach(cell => {
+      cell.addEventListener('click', () => {
+        document.querySelectorAll('.anchor-cell').forEach(c => c.classList.remove('active'));
+        cell.classList.add('active');
+        anchor = cell.dataset.anc;
+      });
+    });
+
+    // ═══════════════════════════════════════════════════════
+    //  BLOCK LABEL SPIN LOGIC
+    // ═══════════════════════════════════════════════════════
+    function getLbl() { return document.getElementById('block-label').value.trim() || '1'; }
+    function setLbl(v) { document.getElementById('block-label').value = v; }
+
+    function spinPlus() {
+      const v = getLbl();
+      const rm = v.match(/^(\d+)-(\d+)$/);
+      if (rm) { setLbl(`${rm[1]}-${+rm[2] + 1}`); return; }
+      const nm = v.match(/^(\d+)$/);
+      if (nm) { setLbl(`${+nm[1]}-${+nm[1] + 1}`); return; }
+      if (/^[A-Za-z]$/.test(v)) { setLbl(String.fromCharCode(v.charCodeAt(0) + 1)); return; }
+    }
+
+    function spinMinus() {
+      const v = getLbl();
+      const rm = v.match(/^(\d+)-(\d+)$/);
+      if (rm) {
+        const lo = +rm[1], hi = +rm[2];
+        setLbl(hi - 1 <= lo ? String(lo) : `${lo}-${hi - 1}`);
+        return;
+      }
+      const nm = v.match(/^(\d+)$/);
+      if (nm) { setLbl(String(Math.max(1, +nm[1] - 1))); return; }
+      if (/^[A-Za-z]$/.test(v)) { setLbl(String.fromCharCode(Math.max(65, v.charCodeAt(0) - 1))); return; }
+    }
+
+    function autoInc(used) {
+      const rm = used.match(/^(\d+)-(\d+)$/);
+      if (rm) { setLbl(String(+rm[2] + 1)); return; }
+      const nm = used.match(/^(\d+)$/);
+      if (nm) { setLbl(String(+nm[1] + 1)); return; }
+      if (/^[A-Za-z]$/.test(used)) { setLbl(String.fromCharCode(used.charCodeAt(0) + 1)); return; }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  IMAGE LOADING
+    // ═══════════════════════════════════════════════════════
+    document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) readImg(e.target.files[0]); });
+    document.getElementById('json-input').addEventListener('change', e => { if (e.target.files[0]) readSession(e.target.files[0]); });
+
+    const dropArea = document.getElementById('canvas-area');
+    dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.outline = '2px dashed var(--accent)'; });
+    dropArea.addEventListener('dragleave', () => { dropArea.style.outline = ''; });
+    dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.style.outline = ''; if (e.dataTransfer.files[0]) readImg(e.dataTransfer.files[0]); });
+
+    function readImg(file) {
+      const r = new FileReader();
+      r.onload = ev => { imgDataURL = ev.target.result; initCanvas(imgDataURL, file.name); };
+      r.readAsDataURL(file);
+    }
+
+    function initCanvas(dataURL, name, afterCb) {
+      const img = new Image();
+      img.onload = () => {
+        document.getElementById('drop-zone').style.display = 'none';
+        document.getElementById('canvas-wrapper').style.display = 'block';
+
+        const area = document.getElementById('canvas-area');
+        const maxW = area.clientWidth - 40, maxH = area.clientHeight - 40;
+        const sc = Math.min(maxW / img.width, maxH / img.height, 1);
+        const W = Math.round(img.width * sc), H = Math.round(img.height * sc);
+
+        if (!cv) {
+          cv = new fabric.Canvas('main-canvas', { selection: false, preserveObjectStacking: true });
+          setupEvents();
+        }
+        cv.setWidth(W); cv.setHeight(H);
+        cv.clear();
+        annots = []; annId = 0; selectedIds.clear();
+        undoStack = []; redoStack = [];
+        refreshList(); refreshCount(); syncHistBtns();
+
+        fabric.Image.fromURL(dataURL, fImg => {
+          fImg.scaleToWidth(W); fImg.scaleToHeight(H);
+          lockBg(fImg);
+          cv.add(fImg);
+          cv.sendToBack(fImg);
+          cv.renderAll();
+          pushHist();
+          if (afterCb) afterCb();
+        });
+
+        if (name) {
+          document.getElementById('file-name').textContent = name;
+          document.getElementById('st-dims').textContent = `${img.width}×${img.height}`;
+        }
+      };
+      img.src = dataURL;
+    }
+
+    function lockBg(obj) {
+      obj.set({
+        selectable: false, evented: false,
+        lockMovementX: true, lockMovementY: true,
+        lockScalingX: true, lockScalingY: true, lockRotation: true,
+        hasControls: false, hasBorders: false, _bg: true,
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  CANVAS EVENTS
+    // ═══════════════════════════════════════════════════════
+    function setupEvents() {
+
+      cv.on('mouse:down', opt => {
+        if (tool === 'select') return;
+        const p = cv.getPointer(opt.e);
+
+        if (tool === 'text') {
+          const lbl = getLbl();
+          const txt = new fabric.IText(lbl, {
+            left: p.x, top: p.y,
+            fontSize,
+            fontFamily: 'DM Mono, monospace',
+            fill: color,
+            shadow: makeShadow(),
+            selectable: true, evented: true,
+            _kind: 'text', _annId: ++annId,
+          });
+          cv.add(txt);
+          cv.setActiveObject(txt);
+          txt.enterEditing(); txt.selectAll();
+          cv.renderAll();
+          txt.once('editing:exited', () => {
+            const finalLbl = txt.text;
+            annots.push({ id: txt._annId, shape: txt, lbl: null, color, label: finalLbl, kind: 'text' });
+            autoInc(lbl);
+            refreshList(); refreshCount(); pushHist();
+          });
+          return;
+        }
+
+        drawing = true; ox = p.x; oy = p.y;
+        const dp = DASH_PATTERNS[lineStyle];
+
+        if (tool === 'rect') {
+          activeObj = new fabric.Rect({
+            left: ox, top: oy, width: 0, height: 0,
+            stroke: color, strokeWidth: strokeW, fill: 'transparent',
+            strokeUniform: true, strokeDashArray: dp,
+            selectable: false, evented: false,
+            _kind: 'rect', _annId: ++annId,
+          });
+        } else {
+          activeObj = new fabric.Line([ox, oy, ox, oy], {
+            stroke: color, strokeWidth: strokeW,
+            strokeLineCap: 'round', strokeDashArray: dp,
+            padding: 8, selectable: false, evented: false,
+            _kind: 'line', _annId: ++annId,
+          });
+        }
+        cv.add(activeObj);
+      });
+
+      cv.on('mouse:move', opt => {
+        if (!drawing || !activeObj) return;
+        const p = cv.getPointer(opt.e);
+        if (tool === 'rect') {
+          let l = ox, t = oy, w = p.x - ox, h = p.y - oy;
+          if (w < 0) { l = p.x; w = -w; } if (h < 0) { t = p.y; h = -h; }
+          activeObj.set({ left: l, top: t, width: w, height: h });
+        } else {
+          activeObj.set({ x2: p.x, y2: p.y });
+        }
+        cv.renderAll();
+      });
+
+      cv.on('mouse:up', () => {
+        if (!drawing || !activeObj) return;
+        drawing = false;
+
+        let tiny = false;
+        if (tool === 'rect') tiny = activeObj.width < 5 || activeObj.height < 5;
+        else { const dx = activeObj.x2 - activeObj.x1, dy = activeObj.y2 - activeObj.y1; tiny = Math.hypot(dx, dy) < 10; }
+
+        if (tiny) { cv.remove(activeObj); annId--; activeObj = null; return; }
+
+        activeObj.set({ selectable: true, evented: true });
+        const usedLbl = getLbl();
+        let lblObj = null;
+
+        if (tool === 'rect' && document.getElementById('show-label').checked) {
+          lblObj = makeLblText(usedLbl, activeObj);
+          cv.add(lblObj);
+        }
+
+        annots.push({ id: activeObj._annId, shape: activeObj, lbl: lblObj, color, label: usedLbl, kind: tool });
+        cv.setActiveObject(activeObj);
+
+        if (tool === 'rect') autoInc(usedLbl);
+
+        refreshList(); refreshCount(); pushHist();
+        activeObj = null;
+      });
+
+      cv.on('selection:created', syncSidebar);
+      cv.on('selection:updated', syncSidebar);
+      cv.on('selection:cleared', () => document.querySelectorAll('.ann-item').forEach(i => i.classList.remove('sel')));
+
+      cv.on('object:moving', opt => glueLbl(opt.target));
+      cv.on('object:scaling', opt => glueLbl(opt.target));
+      cv.on('object:modified', () => pushHist());
+
+      cv.on('mouse:dblclick', opt => {
+        const obj = opt.target;
+        if (!obj || obj._bg) return;
+        // Native IText editing — covers text labels AND legend IText objects
+        if (obj.type === 'i-text') { obj.enterEditing(); return; }
+        const a = annots.find(a => a.shape === obj || a.lbl === obj);
+        if (a) openEdit(a, opt.e);
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  LABEL HELPERS
+    // ═══════════════════════════════════════════════════════
+    const ANCHOR_MAP = {
+      tl: { ox: 'left', fn: (l, t, w, h) => [l + 4, t + 2] },
+      tc: { ox: 'center', fn: (l, t, w, h) => [l + w / 2, t + 2] },
+      tr: { ox: 'right', fn: (l, t, w, h) => [l + w - 4, t + 2] },
+      ml: { ox: 'left', fn: (l, t, w, h) => [l + 4, t + h / 2 - fontSize / 2] },
+      mc: { ox: 'center', fn: (l, t, w, h) => [l + w / 2, t + h / 2 - fontSize / 2] },
+      mr: { ox: 'right', fn: (l, t, w, h) => [l + w - 4, t + h / 2 - fontSize / 2] },
+      bl: { ox: 'left', fn: (l, t, w, h) => [l + 4, t + h - fontSize - 4] },
+      bc: { ox: 'center', fn: (l, t, w, h) => [l + w / 2, t + h - fontSize - 4] },
+      br: { ox: 'right', fn: (l, t, w, h) => [l + w - 4, t + h - fontSize - 4] },
+    };
+
+    function lblPos(shape) {
+      const a = ANCHOR_MAP[anchor] || ANCHOR_MAP.tl;
+      const l = shape.left, t = shape.top;
+      const w = shape.width * (shape.scaleX || 1), h = shape.height * (shape.scaleY || 1);
+      const [x, y] = a.fn(l, t, w, h);
+      return { x, y, originX: a.ox };
+    }
+
+    function makeShadow() {
+      return new fabric.Shadow({ color: 'rgba(0,0,0,0.8)', blur: 4, offsetX: 1, offsetY: 1 });
+    }
+
+    function makeLblText(text, shape) {
+      const p = lblPos(shape);
+      return new fabric.Text(text, {
+        left: p.x, top: p.y, originX: p.originX,
+        fontSize, fontFamily: 'DM Mono, monospace',
+        fill: color,
+        shadow: makeShadow(),
+        selectable: true, evented: true,
+        _kind: 'lbl', _annId: shape._annId,
+      });
+    }
+
+    function glueLbl(shape) {
+      if (shape._kind !== 'rect') return;
+      const a = annots.find(a => a.shape === shape);
+      if (!a || !a.lbl) return;
+      const p = lblPos(shape);
+      a.lbl.set({ left: p.x, top: p.y, originX: p.originX });
+      cv.renderAll();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  INLINE LABEL EDITOR
+    // ═══════════════════════════════════════════════════════
+    let editAnn = null;
+
+    function openEdit(ann, mouseEvt) {
+      editAnn = ann;
+      const inp = document.getElementById('edit-input');
+      inp.value = ann.label;
+      const popup = document.getElementById('edit-popup');
+      popup.style.left = (mouseEvt.clientX + 8) + 'px';
+      popup.style.top = (mouseEvt.clientY - 16) + 'px';
+      popup.classList.add('open');
+      inp.focus(); inp.select();
+    }
+
+    function commitEdit() {
+      if (!editAnn) return;
+      const v = document.getElementById('edit-input').value.trim();
+      if (v) {
+        editAnn.label = v;
+        if (editAnn.lbl) editAnn.lbl.set('text', v);
+        if (editAnn.kind === 'text') editAnn.shape.set('text', v);
+        cv.renderAll(); refreshList(); pushHist();
+      }
+      closeEdit();
+    }
+
+    function closeEdit() {
+      document.getElementById('edit-popup').classList.remove('open');
+      editAnn = null;
+    }
+
+    document.getElementById('edit-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
+      if (e.key === 'Escape') closeEdit();
+    });
+
+    // ═══════════════════════════════════════════════════════
+    //  TOOL SWITCHING
+    // ═══════════════════════════════════════════════════════
+    function setTool(t) {
+      tool = t;
+      ['rect', 'line', 'text', 'select'].forEach(id => {
+        const el = document.getElementById('tool-' + id);
+        if (el) el.classList.toggle('active', id === t);
+      });
+      const names = { rect: 'Rectangle', line: 'Line', text: 'Text Label', select: 'Select / Move' };
+      document.getElementById('st-tool').textContent = names[t] || t;
+      if (!cv) return;
+      const sel = t === 'select';
+      cv.selection = sel;
+      cv.defaultCursor = sel ? 'default' : 'crosshair';
+      cv.getObjects().forEach(obj => {
+        if (obj._bg) return;
+        const alwaysSel = obj._kind === 'lbl' || obj._kind === 'text' || obj.isLegend;
+        obj.selectable = sel || alwaysSel;
+        obj.evented = sel || alwaysSel;
+      });
+      if (!sel) cv.discardActiveObject();
+      cv.renderAll();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SIDEBAR SYNC
+    // ═══════════════════════════════════════════════════════
+    function syncSidebar() {
+      const obj = cv.getActiveObject();
+      if (!obj || obj._bg) return;
+      if (obj.strokeWidth) {
+        document.getElementById('stroke-w').value = obj.strokeWidth;
+        document.getElementById('sw-val').textContent = obj.strokeWidth + 'px';
+      }
+      if (obj.fontSize) {
+        document.getElementById('font-s').value = obj.fontSize;
+        document.getElementById('fs-val').textContent = obj.fontSize + 'px';
+      }
+      const c = obj.stroke || obj.fill;
+      if (c && c !== 'transparent') {
+        document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('active', s.title === c));
+        color = c;
+      }
+      const a = annots.find(a => a.shape === obj || a.lbl === obj);
+      document.querySelectorAll('.ann-item').forEach(el => el.classList.toggle('sel', a && selectedIds.has(a.id)));
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  DELETE SELECTED  (canvas active + list selections)
+    // ═══════════════════════════════════════════════════════
+    function deleteSelected() {
+      if (!cv) return;
+
+      // Collect annot ids to remove: from sidebar selection + canvas active object
+      const toRemove = new Set(selectedIds);
+
+      const obj = cv.getActiveObject();
+      if (obj && !obj._bg) {
+        const a = annots.find(a => a.shape === obj || a.lbl === obj);
+        if (a) toRemove.add(a.id);
+        // If it's a legend or orphan
+        if (!a && !obj._bg) cv.remove(obj);
+      }
+
+      annots.filter(a => toRemove.has(a.id)).forEach(a => {
+        if (a.lbl) cv.remove(a.lbl);
+        cv.remove(a.shape);
+      });
+      annots = annots.filter(a => !toRemove.has(a.id));
+
+      selectedIds.clear();
+      cv.discardActiveObject();
+      cv.renderAll();
+      refreshList(); refreshCount(); pushHist();
+    }
+
+    function clearAll() {
+      if (!cv) return;
+      if (!confirm('Remove all annotations? The image will remain.')) return;
+      annots.forEach(a => {
+        if (a.lbl) cv.remove(a.lbl);
+        cv.remove(a.shape);
+      });
+      // Also remove legends
+      cv.getObjects().filter(o => o.isLegend).forEach(o => cv.remove(o));
+      annots = []; selectedIds.clear(); annId = 0;
+      cv.discardActiveObject(); cv.renderAll();
+      refreshList(); refreshCount(); pushHist();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  ANNOTATION LIST  (multi-select with Ctrl/Shift+click)
+    // ═══════════════════════════════════════════════════════
+    const ICONS = {
+      rect: `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18"/></svg>`,
+      line: `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="19" x2="19" y2="5"/></svg>`,
+      text: `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`,
+    };
+
+    let lastClickedIdx = null;
+
+    function refreshList() {
+      const list = document.getElementById('annot-list');
+      list.innerHTML = '';
+      annots.forEach((a, idx) => {
+        const el = document.createElement('div');
+        el.className = 'ann-item' + (selectedIds.has(a.id) ? ' sel' : '');
+        el.dataset.id = a.id;
+        el.dataset.idx = idx;
+        const dc = a.color === '#000000' ? '#888' : a.color;
+        const dispLbl = a.kind === 'text' ? (a.shape.text || a.label).substring(0, 16) : `Block ${a.label}`;
+        el.innerHTML = `<div class="ann-dot" style="background:${dc}"></div>
+      <span style="opacity:.5;line-height:1">${ICONS[a.kind] || ''}</span>
+      <span>${dispLbl}</span>
+      <button class="ann-del" title="Delete this">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>`;
+
+        el.addEventListener('click', ev => {
+          if (ev.target.closest('.ann-del')) {
+            // Delete this one immediately
+            if (a.lbl) cv.remove(a.lbl);
+            cv.remove(a.shape);
+            annots = annots.filter(x => x !== a);
+            selectedIds.delete(a.id);
+            refreshList(); refreshCount(); cv.renderAll(); pushHist();
+            return;
+          }
+
+          if (ev.ctrlKey || ev.metaKey) {
+            // Toggle individual
+            if (selectedIds.has(a.id)) selectedIds.delete(a.id);
+            else selectedIds.add(a.id);
+            lastClickedIdx = idx;
+          } else if (ev.shiftKey && lastClickedIdx !== null) {
+            // Range select
+            const lo = Math.min(lastClickedIdx, idx), hi = Math.max(lastClickedIdx, idx);
+            for (let i = lo; i <= hi; i++) selectedIds.add(annots[i].id);
+            lastClickedIdx = idx;
+          } else {
+            // Normal click: select only this, also select on canvas
+            selectedIds.clear();
+            selectedIds.add(a.id);
+            lastClickedIdx = idx;
+            if (cv) { setTool('select'); cv.setActiveObject(a.shape); cv.renderAll(); }
+          }
+          refreshList();
+        });
+
+        list.appendChild(el);
+      });
+    }
+
+    function refreshCount() {
+      document.getElementById('st-count').textContent = annots.length;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  UNDO / REDO
+    // ═══════════════════════════════════════════════════════
+    const JSON_PROPS = ['_bg', '_kind', '_annId', 'isLegend'];
+
+    function snapMeta() {
+      return annots.map(a => ({ id: a.id, color: a.color, label: a.label, kind: a.kind }));
+    }
+
+    function pushHist() {
+      if (histLock || !cv) return;
+      undoStack.push({
+        json: cv.toJSON(JSON_PROPS),
+        meta: snapMeta(),
+        lbl: getLbl(),
+        annId,
+      });
+      if (undoStack.length > 80) undoStack.shift();
+      redoStack = [];
+      syncHistBtns();
+    }
+
+    function doUndo() {
+      if (undoStack.length <= 1) return;
+      redoStack.push(undoStack.pop());
+      applySnap(undoStack[undoStack.length - 1]);
+    }
+
+    function doRedo() {
+      if (!redoStack.length) return;
+      const s = redoStack.pop();
+      undoStack.push(s);
+      applySnap(s);
+    }
+
+    function applySnap(snap) {
+      histLock = true;
+      cv.loadFromJSON(snap.json, () => {
+        cv.renderAll();
+        // Re-lock any bg objects
+        cv.getObjects().forEach(obj => { if (obj._bg) lockBg(obj); });
+
+        // Rebuild annots references
+        const byId = {}, lblById = {};
+        cv.getObjects().forEach(obj => {
+          if (obj._kind === 'rect' || obj._kind === 'line' || obj._kind === 'text') byId[obj._annId] = obj;
+          if (obj._kind === 'lbl') lblById[obj._annId] = obj;
+        });
+        annots = snap.meta.map(m => ({
+          id: m.id, color: m.color, label: m.label, kind: m.kind,
+          shape: byId[m.id] || null, lbl: lblById[m.id] || null,
+        })).filter(a => a.shape);
+
+        annId = snap.annId;
+        setLbl(snap.lbl);
+        selectedIds.clear();
+        refreshList(); refreshCount();
+        histLock = false;
+        syncHistBtns();
+        setTool(tool);
+      });
+    }
+
+    function syncHistBtns() {
+      document.getElementById('undo-btn').disabled = undoStack.length <= 1;
+      document.getElementById('redo-btn').disabled = redoStack.length === 0;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  ORIENTATION LEGEND MODAL
+    // ═══════════════════════════════════════════════════════
+    (function buildPresets() {
+      const chips = document.getElementById('preset-chips');
+      LEGEND_PRESETS.forEach(p => {
+        const el = document.createElement('div');
+        el.className = 'preset-chip';
+        el.innerHTML = `<div class="chip-main">${p.label}</div><div class="chip-sub">${p.sub}</div>`;
+        el.onclick = () => {
+          document.getElementById('leg-s').value = p.s;
+          document.getElementById('leg-i').value = p.i;
+          document.getElementById('leg-l').value = p.l;
+          document.getElementById('leg-r').value = p.r;
+          document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('applied'));
+          el.classList.add('applied');
+          refreshPreview();
+        };
+        chips.appendChild(el);
+      });
+    })();
+
+    function openLegend() { refreshPreview(); document.getElementById('legend-modal').classList.add('open'); }
+    function closeLegend() { document.getElementById('legend-modal').classList.remove('open'); }
+    document.getElementById('legend-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeLegend(); });
+
+    function refreshPreview() {
+      const s = document.getElementById('leg-s').value;
+      const i = document.getElementById('leg-i').value;
+      const l = document.getElementById('leg-l').value;
+      const r = document.getElementById('leg-r').value;
+      document.getElementById('leg-preview').innerHTML =
+        `<div>${s || '—'}</div><div class="ctr"><span class="leg-left">${l || '—'}</span><span>+</span><span class="leg-right">${r || '—'}</span></div><div>${i || '—'}</div>`;
+    }
+
+    function insertLegend() {
+      if (!cv) { closeLegend(); return; }
+      const sup = document.getElementById('leg-s').value.trim();
+      const inf = document.getElementById('leg-i').value.trim();
+      const left = document.getElementById('leg-l').value.trim();
+      const right = document.getElementById('leg-r').value.trim();
+      const pos = document.getElementById('leg-pos').value;
+      const col = document.getElementById('leg-col').value;
+
+      const fz = 13, lh = 20, pad = 10;
+      const hasMid = left || right;
+      const rowCount = (sup ? 1 : 0) + (hasMid ? 1 : 0) + (inf ? 1 : 0);
+      const bw = 190, bh = rowCount * lh + pad * 2;
+      const cW = cv.width, cH = cv.height;
+      const corners = { br: [cW - bw - 10, cH - bh - 10], bl: [10, cH - bh - 10], tr: [cW - bw - 10, 10], tl: [10, 10] };
+      const [bx, by] = corners[pos] || corners.br;
+
+      const baseProps = {
+        fontSize: fz, fontFamily: 'DM Mono,monospace', fill: col,
+        selectable: true, evented: true, isLegend: true,
+      };
+
+      // Background box
+      cv.add(new fabric.Rect({
+        left: bx, top: by, width: bw, height: bh,
+        fill: 'rgba(0,0,0,0.6)', rx: 5, ry: 5,
+        selectable: true, evented: true, isLegend: true,
+      }));
+
+      let ty = by + pad;
+
+      if (sup) {
+        cv.add(new fabric.IText(sup, { ...baseProps, left: bx + bw / 2, top: ty, originX: 'center' }));
+        ty += lh;
+      }
+
+      if (hasMid) {
+        // Left word — left-aligned from box left edge
+        if (left) cv.add(new fabric.IText(left, { ...baseProps, left: bx + pad, top: ty, originX: 'left' }));
+        // Plus — always centered in the box
+        cv.add(new fabric.IText('+', { ...baseProps, left: bx + bw / 2, top: ty, originX: 'center' }));
+        // Right word — right-aligned from box right edge
+        if (right) cv.add(new fabric.IText(right, { ...baseProps, left: bx + bw - pad, top: ty, originX: 'right' }));
+        ty += lh;
+      }
+
+      if (inf) {
+        cv.add(new fabric.IText(inf, { ...baseProps, left: bx + bw / 2, top: ty, originX: 'center' }));
+      }
+
+      cv.renderAll(); pushHist(); closeLegend();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SAVE / LOAD SESSION
+    // ═══════════════════════════════════════════════════════
+    function saveSession() {
+      if (!cv || !imgDataURL) { alert('No image loaded.'); return; }
+      cv.discardActiveObject(); cv.renderAll();
+      const session = {
+        v: 4, imageName: document.getElementById('file-name').textContent,
+        imageDataURL: imgDataURL,
+        canvasJSON: cv.toJSON(JSON_PROPS),
+        meta: snapMeta(),
+        lbl: getLbl(), annId,
+      };
+      const blob = new Blob([JSON.stringify(session, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'pathannotate-session.json'; a.click();
+    }
+
+    function readSession(file) {
+      const r = new FileReader();
+      r.onload = ev => {
+        let s; try { s = JSON.parse(ev.target.result); } catch { alert('Invalid session file.'); return; }
+        imgDataURL = s.imageDataURL;
+        document.getElementById('drop-zone').style.display = 'none';
+        document.getElementById('canvas-wrapper').style.display = 'block';
+        initCanvas(s.imageDataURL, s.imageName, () => {
+          histLock = true;
+          cv.loadFromJSON(s.canvasJSON, () => {
+            cv.renderAll();
+            cv.getObjects().forEach(obj => { if (obj._bg) lockBg(obj); });
+            const byId = {}, lblById = {};
+            cv.getObjects().forEach(obj => {
+              if (obj._kind === 'rect' || obj._kind === 'line' || obj._kind === 'text') byId[obj._annId] = obj;
+              if (obj._kind === 'lbl') lblById[obj._annId] = obj;
+            });
+            annots = s.meta.map(m => ({ id: m.id, color: m.color, label: m.label, kind: m.kind, shape: byId[m.id] || null, lbl: lblById[m.id] || null })).filter(a => a.shape);
+            annId = s.annId; setLbl(s.lbl);
+            selectedIds.clear();
+            refreshList(); refreshCount(); histLock = false;
+            pushHist(); syncHistBtns(); setTool(tool);
+          });
+        });
+      };
+      r.readAsText(file);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  EXPORT — full-resolution JPEG
+    // ═══════════════════════════════════════════════════════
+    /*
+      The blur issue is caused by exporting at the displayed (scaled-down) canvas
+      resolution. Fix: export at the ORIGINAL image resolution using a multiplier.
+    */
+    function exportImg() {
+      if (!cv) return;
+      cv.discardActiveObject(); cv.renderAll();
+
+      // Determine original image dimensions from the stored dataURL
+      const img = new Image();
+      img.onload = () => {
+        const scaleX = img.width / cv.width;
+        const scaleY = img.height / cv.height;
+        const mult = Math.max(scaleX, scaleY, 1); // at minimum 1×
+        const dataURL = cv.toDataURL({ format: 'jpeg', quality: 0.96, multiplier: mult });
+        const a = document.createElement('a');
+        a.href = dataURL; a.download = 'annotated_specimen.jpg'; a.click();
+      };
+      img.src = imgDataURL || '';
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  KEYBOARD
+    // ═══════════════════════════════════════════════════════
+    document.addEventListener('keydown', e => {
+      const tag = document.activeElement.tagName;
+      const inInput = tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable;
+
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); doUndo(); return; }
+      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); doRedo(); return; }
+
+      if (inInput) return;
+      if (e.key === 'Escape') { closeEdit(); closeLegend(); if (cv) { cv.discardActiveObject(); cv.renderAll(); } selectedIds.clear(); refreshList(); return; }
+      if (e.key.toLowerCase() === 'r') setTool('rect');
+      if (e.key.toLowerCase() === 'e') setTool('line');
+      if (e.key.toLowerCase() === 't') setTool('text');
+      if (e.key.toLowerCase() === 's') setTool('select');
+      if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+    });
+  </script>
+</body>
+
+</html>
