@@ -1208,6 +1208,8 @@
     let annots = [];   // {id, shape, lbl, color, label, kind}
     let annId = 0;
     let selectedIds = new Set(); // ids selected in sidebar list
+    let lastMousePos = null;   // last known pointer position on canvas (for paste)
+    let clipboard = [];        // [{ann, relX, relY}] for Ctrl+C / Ctrl+V
 
     let undoStack = [], redoStack = [], histLock = false;
     let imgDataURL = null;
@@ -1322,10 +1324,30 @@
     });
 
     // ═══════════════════════════════════════════════════════
-    //  BLOCK LABEL SPIN LOGIC
+    //  BLOCK LABEL SPIN LOGIC + LIVE UPDATE
     // ═══════════════════════════════════════════════════════
     function getLbl() { return document.getElementById('block-label').value.trim() || '1'; }
     function setLbl(v) { document.getElementById('block-label').value = v; }
+
+    // Live-update the selected annotation's label while the user types
+    document.getElementById('block-label').addEventListener('input', function () {
+      if (!cv) return;
+      const v = this.value.trim(); if (!v) return;
+      const obj = cv.getActiveObject();
+      if (!obj || obj._bg) return;
+      if (obj._kind === 'text') {
+        obj.set('text', v);
+        const a = annots.find(a => a.shape === obj); if (a) a.label = v;
+        cv.renderAll();
+      } else if (obj._kind === 'lbl') {
+        obj.set('text', v);
+        const a = annots.find(a => a.lbl === obj); if (a) a.label = v;
+        cv.renderAll();
+      } else if (obj._kind === 'rect') {
+        const a = annots.find(a => a.shape === obj);
+        if (a) { a.label = v; if (a.lbl) { a.lbl.set('text', v); cv.renderAll(); } }
+      }
+    });
 
     // Alpha helpers — base-26, 1-indexed: A=1, Z=26, AA=27, AZ=52, BA=53 …
     function alphaVal(s) {
@@ -1394,7 +1416,12 @@
     const dropArea = document.getElementById('canvas-area');
     dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.outline = '2px dashed var(--accent)'; });
     dropArea.addEventListener('dragleave', () => { dropArea.style.outline = ''; });
-    dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.style.outline = ''; if (e.dataTransfer.files[0]) readImg(e.dataTransfer.files[0]); });
+    dropArea.addEventListener('drop', e => {
+      e.preventDefault(); dropArea.style.outline = '';
+      const file = e.dataTransfer.files[0]; if (!file) return;
+      if (file.name.toLowerCase().endsWith('.json') || file.type === 'application/json') readSession(file);
+      else readImg(file);
+    });
 
     function readImg(file) {
       const r = new FileReader();
@@ -1509,8 +1536,9 @@
       });
 
       cv.on('mouse:move', opt => {
-        if (!drawing || !activeObj) return;
         const p = cv.getPointer(opt.e);
+        lastMousePos = p;
+        if (!drawing || !activeObj) return;
         if (tool === 'rect') {
           let l = ox, t = oy, w = p.x - ox, h = p.y - oy;
           if (w < 0) { l = p.x; w = -w; } if (h < 0) { t = p.y; h = -h; }
@@ -1571,19 +1599,20 @@
     // ═══════════════════════════════════════════════════════
     //  COPY CONTROLS — + buttons on all 4 sides of rect/line
     // ═══════════════════════════════════════════════════════
-    function renderCopyBtn(ctx, left, top) {
-      const r = 9;
+    function renderCopyBtn(ctx, left, top, styleOverride, fabricObject) {
+      // Match the visual style of Fabric.js's native resize/rotate controls so
+      // the copy buttons blend seamlessly with the selection bounding box.
+      const size = (fabricObject && fabricObject.cornerSize) || 13;
+      const half = size / 2;
       ctx.save();
-      ctx.beginPath();
-      ctx.arc(left, top, r, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(15,15,16,0.82)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(0,229,195,0.7)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.fillStyle = '#00e5c3';
-      ctx.font = 'bold 14px DM Sans, sans-serif';
-      ctx.textAlign = 'center';
+      ctx.fillStyle   = (fabricObject && fabricObject.cornerColor) || 'rgba(255,255,255,0.92)';
+      ctx.strokeStyle = (fabricObject && fabricObject.cornerStrokeColor) || 'rgba(0,0,0,0.25)';
+      ctx.lineWidth   = 1;
+      ctx.fillRect(left - half, top - half, size, size);
+      ctx.strokeRect(left - half, top - half, size, size);
+      ctx.fillStyle    = 'rgba(0,0,0,0.72)';
+      ctx.font         = `bold ${Math.round(size * 0.85)}px sans-serif`;
+      ctx.textAlign    = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('+', left, top + 0.5);
       ctx.restore();
@@ -1614,9 +1643,10 @@
       if (!ann) return;
 
       const angle = ((obj.angle || 0) * Math.PI) / 180;
-      const sw    = obj.strokeWidth || 0;
-      const W     = obj.getScaledWidth()  + (obj.strokeUniform ? sw : sw / 2);
-      const H     = obj.getScaledHeight() + (obj.strokeUniform ? sw : sw / 2);
+      // getScaledWidth/Height already include stroke contribution in Fabric.js v5,
+      // so no extra addition is needed — duplicates will touch with zero gap.
+      const W = obj.getScaledWidth();
+      const H = obj.getScaledHeight();
 
       const center = obj.getCenterPoint();
       const cos = Math.cos(angle), sin = Math.sin(angle);
@@ -1654,24 +1684,36 @@
     // ═══════════════════════════════════════════════════════
     //  LABEL HELPERS
     // ═══════════════════════════════════════════════════════
+    // lx/ly: edge multipliers  -1=left/top  0=center  +1=right/bottom
+    // lox: fixed local-x pixel nudge; oyFn: returns local-y nudge (reads fontSize at call time)
     const ANCHOR_MAP = {
-      tl: { ox: 'left', fn: (l, t, w, h) => [l + 4, t + 2] },
-      tc: { ox: 'center', fn: (l, t, w, h) => [l + w / 2, t + 2] },
-      tr: { ox: 'right', fn: (l, t, w, h) => [l + w - 4, t + 2] },
-      ml: { ox: 'left', fn: (l, t, w, h) => [l + 4, t + h / 2 - fontSize / 2] },
-      mc: { ox: 'center', fn: (l, t, w, h) => [l + w / 2, t + h / 2 - fontSize / 2] },
-      mr: { ox: 'right', fn: (l, t, w, h) => [l + w - 4, t + h / 2 - fontSize / 2] },
-      bl: { ox: 'left', fn: (l, t, w, h) => [l + 4, t + h - fontSize - 4] },
-      bc: { ox: 'center', fn: (l, t, w, h) => [l + w / 2, t + h - fontSize - 4] },
-      br: { ox: 'right', fn: (l, t, w, h) => [l + w - 4, t + h - fontSize - 4] },
+      tl: { lx:-1, ly:-1, lox: 4, oyFn:()=> 2,           ox:'left'   },
+      tc: { lx: 0, ly:-1, lox: 0, oyFn:()=> 2,           ox:'center' },
+      tr: { lx: 1, ly:-1, lox:-4, oyFn:()=> 2,           ox:'right'  },
+      ml: { lx:-1, ly: 0, lox: 4, oyFn:()=>-fontSize/2,  ox:'left'   },
+      mc: { lx: 0, ly: 0, lox: 0, oyFn:()=>-fontSize/2,  ox:'center' },
+      mr: { lx: 1, ly: 0, lox:-4, oyFn:()=>-fontSize/2,  ox:'right'  },
+      bl: { lx:-1, ly: 1, lox: 4, oyFn:()=>-fontSize-4,  ox:'left'   },
+      bc: { lx: 0, ly: 1, lox: 0, oyFn:()=>-fontSize-4,  ox:'center' },
+      br: { lx: 1, ly: 1, lox:-4, oyFn:()=>-fontSize-4,  ox:'right'  },
     };
 
     function lblPos(shape) {
       const a = ANCHOR_MAP[anchor] || ANCHOR_MAP.tl;
-      const l = shape.left, t = shape.top;
-      const w = shape.width * (shape.scaleX || 1), h = shape.height * (shape.scaleY || 1);
-      const [x, y] = a.fn(l, t, w, h);
-      return { x, y, originX: a.ox };
+      // Use the object's actual center point and rotate offsets into canvas space.
+      // This keeps labels correctly anchored even when the rect is rotated.
+      const center = shape.getCenterPoint();
+      const angle  = ((shape.angle || 0) * Math.PI) / 180;
+      const W = shape.width  * (shape.scaleX || 1);
+      const H = shape.height * (shape.scaleY || 1);
+      const cos = Math.cos(angle), sin = Math.sin(angle);
+      const localX = a.lx * (W / 2) + a.lox;
+      const localY = a.ly * (H / 2) + a.oyFn();
+      return {
+        x: center.x + localX * cos - localY * sin,
+        y: center.y + localX * sin + localY * cos,
+        originX: a.ox,
+      };
     }
 
     function makeShadow() {
@@ -1796,15 +1838,17 @@
 
       const obj = cv.getActiveObject();
       if (obj && !obj._bg) {
-        if (obj.isTitle) {
-          // Remove all title parts together
-          cv.getObjects().filter(o => o.isTitle).forEach(o => cv.remove(o));
-        } else {
-          const a = annots.find(a => a.shape === obj || a.lbl === obj);
-          if (a) toRemove.add(a.id);
-          // If it's a legend or orphan
-          if (!a && !obj._bg) cv.remove(obj);
-        }
+        const sources = obj.type === 'activeSelection' ? obj.getObjects() : [obj];
+        sources.forEach(o => {
+          if (o._bg) return;
+          if (o.isTitle) {
+            cv.getObjects().filter(t => t.isTitle).forEach(t => cv.remove(t));
+          } else {
+            const a = annots.find(a => a.shape === o || a.lbl === o);
+            if (a) toRemove.add(a.id);
+            else cv.remove(o); // legend or orphan
+          }
+        });
       }
 
       annots.filter(a => toRemove.has(a.id)).forEach(a => {
@@ -1920,6 +1964,25 @@
       if (undoStack.length > 80) undoStack.shift();
       redoStack = [];
       syncHistBtns();
+      autoSave();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  LOCAL STORAGE AUTO-SAVE
+    // ═══════════════════════════════════════════════════════
+    const LS_KEY = 'pathannotate_v5';
+
+    function autoSave() {
+      if (!cv || histLock) return;
+      try {
+        const session = {
+          v: 5, imageName: document.getElementById('file-name').textContent,
+          canvasJSON: cv.toJSON(JSON_PROPS),
+          meta: snapMeta(), lbl: getLbl(), annId,
+          titleText: getTitleText() || null,
+        };
+        localStorage.setItem(LS_KEY, JSON.stringify(session));
+      } catch (e) { /* quota exceeded — silently ignore */ }
     }
 
     function doUndo() {
@@ -2060,6 +2123,65 @@
     }
 
     // ═══════════════════════════════════════════════════════
+    //  CLIPBOARD  (Ctrl+C / Ctrl+V)
+    // ═══════════════════════════════════════════════════════
+    function copyToClipboard() {
+      if (!cv) return;
+      const obj = cv.getActiveObject();
+      if (!obj) return;
+      const sources = obj.type === 'activeSelection' ? obj.getObjects() : [obj];
+      const valid = sources
+        .filter(o => !o._bg && (o._kind === 'rect' || o._kind === 'line' || o._kind === 'text'))
+        .map(o => annots.find(a => a.shape === o))
+        .filter(Boolean);
+      if (!valid.length) return;
+      // Compute centroid so relative positions are preserved on multi-paste
+      let cx = 0, cy = 0;
+      valid.forEach(a => { const p = a.shape.getCenterPoint(); cx += p.x; cy += p.y; });
+      cx /= valid.length; cy /= valid.length;
+      clipboard = valid.map(a => ({
+        ann: a,
+        relX: a.shape.getCenterPoint().x - cx,
+        relY: a.shape.getCenterPoint().y - cy,
+      }));
+    }
+
+    function pasteFromClipboard() {
+      if (!cv || !clipboard.length) return;
+      // Paste centroid at cursor position, or fall back to 10px right of original
+      let pasteX, pasteY;
+      if (lastMousePos) {
+        pasteX = lastMousePos.x; pasteY = lastMousePos.y;
+      } else {
+        pasteX = clipboard[0].ann.shape.getCenterPoint().x + 10;
+        pasteY = clipboard[0].ann.shape.getCenterPoint().y;
+      }
+      let pasted = 0;
+      clipboard.forEach(({ ann, relX, relY }) => {
+        ann.shape.clone(cloned => {
+          cloned._annId = ++annId;
+          cloned.setPositionByOrigin(
+            new fabric.Point(pasteX + relX, pasteY + relY), 'center', 'center');
+          cloned.set({ selectable: true, evented: true, angle: ann.shape.angle || 0 });
+          addCopyControls(cloned);
+          cv.add(cloned);
+          const usedLbl = getLbl();
+          let lblObj = null;
+          if (ann.kind === 'rect' && document.getElementById('show-label').checked) {
+            lblObj = makeLblText(usedLbl, cloned);
+            cv.add(lblObj);
+          }
+          if (ann.kind === 'text') cloned.set('text', usedLbl);
+          annots.push({ id: cloned._annId, shape: cloned, lbl: lblObj,
+            color: ann.color, label: usedLbl, kind: ann.kind });
+          if (ann.kind !== 'line') autoInc(usedLbl);
+          pasted++;
+          if (pasted === clipboard.length) { refreshList(); refreshCount(); pushHist(); cv.renderAll(); }
+        }, JSON_PROPS);
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════
     //  SPECIMEN TITLE
     // ═══════════════════════════════════════════════════════
     function getTitleText() {
@@ -2157,42 +2279,45 @@
       return c.toDataURL('image/png');
     }
 
+    function applySessionObject(s) {
+      // Determine image: v4 sessions embed it; v5+ do not.
+      // Fall back to whatever image is already loaded, then to a placeholder.
+      let useDataURL = s.imageDataURL || imgDataURL;
+      if (!useDataURL) {
+        const cj = s.canvasJSON || {};
+        useDataURL = makePlaceholderDataURL(cj.width || 800, cj.height || 600);
+      }
+      imgDataURL = useDataURL;
+      document.getElementById('drop-zone').style.display = 'none';
+      document.getElementById('canvas-wrapper').style.display = 'block';
+      initCanvas(useDataURL, s.imageName || 'mapping', () => {
+        histLock = true;
+        cv.loadFromJSON(s.canvasJSON, () => {
+          cv.renderAll();
+          cv.getObjects().forEach(obj => {
+            if (obj._bg) lockBg(obj);
+            else addCopyControls(obj);
+          });
+          const byId = {}, lblById = {};
+          cv.getObjects().forEach(obj => {
+            if (obj._kind === 'rect' || obj._kind === 'line' || obj._kind === 'text') byId[obj._annId] = obj;
+            if (obj._kind === 'lbl') lblById[obj._annId] = obj;
+          });
+          annots = s.meta.map(m => ({ id: m.id, color: m.color, label: m.label, kind: m.kind,
+            shape: byId[m.id] || null, lbl: lblById[m.id] || null })).filter(a => a.shape);
+          annId = s.annId; setLbl(s.lbl);
+          selectedIds.clear();
+          refreshList(); refreshCount(); histLock = false;
+          pushHist(); syncHistBtns(); setTool(tool);
+        });
+      });
+    }
+
     function readSession(file) {
       const r = new FileReader();
       r.onload = ev => {
         let s; try { s = JSON.parse(ev.target.result); } catch { alert('Invalid session file.'); return; }
-
-        // Determine image: v4 sessions embed it; v5+ do not.
-        // Fall back to whatever image is already loaded, then to a placeholder.
-        let useDataURL = s.imageDataURL || imgDataURL;
-        if (!useDataURL) {
-          const cj = s.canvasJSON || {};
-          useDataURL = makePlaceholderDataURL(cj.width || 800, cj.height || 600);
-        }
-        imgDataURL = useDataURL;
-
-        document.getElementById('drop-zone').style.display = 'none';
-        document.getElementById('canvas-wrapper').style.display = 'block';
-        initCanvas(useDataURL, s.imageName || 'mapping', () => {
-          histLock = true;
-          cv.loadFromJSON(s.canvasJSON, () => {
-            cv.renderAll();
-            cv.getObjects().forEach(obj => {
-              if (obj._bg) lockBg(obj);
-              else addCopyControls(obj);
-            });
-            const byId = {}, lblById = {};
-            cv.getObjects().forEach(obj => {
-              if (obj._kind === 'rect' || obj._kind === 'line' || obj._kind === 'text') byId[obj._annId] = obj;
-              if (obj._kind === 'lbl') lblById[obj._annId] = obj;
-            });
-            annots = s.meta.map(m => ({ id: m.id, color: m.color, label: m.label, kind: m.kind, shape: byId[m.id] || null, lbl: lblById[m.id] || null })).filter(a => a.shape);
-            annId = s.annId; setLbl(s.lbl);
-            selectedIds.clear();
-            refreshList(); refreshCount(); histLock = false;
-            pushHist(); syncHistBtns(); setTool(tool);
-          });
-        });
+        applySessionObject(s);
       };
       r.readAsText(file);
     }
@@ -2229,9 +2354,16 @@
     document.addEventListener('keydown', e => {
       const tag = document.activeElement.tagName;
       const inInput = tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable;
+      // Consider Fabric.js IText editing as "in input" so Backspace/Ctrl+C etc.
+      // operate on the text being edited rather than on annotations.
+      const iTextEditing = cv && cv.getActiveObject() && cv.getActiveObject().isEditing;
 
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); doUndo(); return; }
       if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); doRedo(); return; }
+
+      // Ctrl+C / Ctrl+V — skip if inside a text input or IText edit
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && !inInput && !iTextEditing) { copyToClipboard(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && !inInput && !iTextEditing) { e.preventDefault(); pasteFromClipboard(); return; }
 
       if (inInput) return;
       if (e.key === 'Escape') { closeEdit(); closeLegend(); if (cv) { cv.discardActiveObject(); cv.renderAll(); } selectedIds.clear(); refreshList(); return; }
@@ -2239,8 +2371,20 @@
       if (e.key.toLowerCase() === 'e') setTool('line');
       if (e.key.toLowerCase() === 't') setTool('text');
       if (e.key.toLowerCase() === 's') setTool('select');
-      if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !iTextEditing) deleteSelected();
     });
+
+    // ═══════════════════════════════════════════════════════
+    //  AUTO-RESTORE on page load (from localStorage)
+    // ═══════════════════════════════════════════════════════
+    (function () {
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        if (s && s.canvasJSON) applySessionObject(s);
+      } catch (e) { /* corrupt data — ignore */ }
+    })();
   </script>
 </body>
 
