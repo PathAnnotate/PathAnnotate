@@ -442,8 +442,9 @@
       padding: 5px 7px;
       margin-top: 3px;
       min-height: 28px;
-      line-height: 1.5;
-      word-break: break-all
+      line-height: 1.7;
+      word-break: break-all;
+      white-space: pre-line
     }
 
     /* CHECKBOXES */
@@ -952,8 +953,17 @@
           <polyline points="17 8 12 3 7 8" />
           <line x1="12" y1="3" x2="12" y2="15" />
         </svg>
-        Import
+        Import Photo
       </button>
+      <button class="pill" onclick="exportImg()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Export Photo
+      </button>
+      <div class="hdr-sep"></div>
       <button class="pill" onclick="saveSession()">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
@@ -968,14 +978,6 @@
         </svg>
         Load
       </button>
-      <button class="pill" onclick="exportImg()">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
-        Export
-      </button>
       <div class="hdr-sep"></div>
       <button class="pill pill-danger" id="del-sel-btn" onclick="deleteSelected()">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -989,6 +991,12 @@
           <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
         </svg>
         Clear All
+      </button>
+      <button class="pill pill-danger" onclick="resetAll()">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/>
+        </svg>
+        Reset
       </button>
       <div class="hdr-sep"></div>
       <div class="hdr-info" id="file-name">no image loaded</div>
@@ -1234,15 +1242,19 @@
 
   <!-- Title modal -->
   <div class="modal-bg" id="title-modal">
-    <div class="modal" style="width:360px">
+    <div class="modal" style="width:380px">
       <h3>Specimen Title</h3>
       <p style="font-size:11px;color:var(--muted);margin-bottom:10px">
-        Displayed top-left on the canvas. Used as filename when exporting JSON or JPEG.
-        Leave blank to remove the title.
+        Displayed on the canvas and used as the export filename.<br>
+        Combined display: <em>Case Number</em> – <em>Specimen</em>.
       </p>
       <div class="mf">
-        <label>Title</label>
-        <input id="title-input" placeholder="e.g. Specimen A — Case 2024-001" style="font-size:13px">
+        <label>Case Number</label>
+        <input id="case-num-input" placeholder="e.g. QCS-26-31553" style="font-size:13px">
+      </div>
+      <div class="mf" style="margin-top:8px">
+        <label>Specimen</label>
+        <input id="specimen-input" placeholder="e.g. 1 Endometrium" style="font-size:13px">
       </div>
       <div class="modal-acts">
         <button class="m-cancel" onclick="closeTitle()">Cancel</button>
@@ -1299,9 +1311,14 @@
     let selectedIds = new Set(); // ids selected in sidebar list
     let lastMousePos = null;   // last known pointer position on canvas (for paste)
     let clipboard = [];        // [{ann, relX, relY}] for Ctrl+C / Ctrl+V
+    let shiftHeld = false;     // tracks Shift key for line snapping
 
     let undoStack = [], redoStack = [], histLock = false;
     let imgDataURL = null;
+
+    // Specimen title fields (persisted in session)
+    let caseNum = '';
+    let specimenText = '';
 
     // ═══════════════════════════════════════════════════════
     //  THEME
@@ -1571,6 +1588,87 @@
     }
 
     // ═══════════════════════════════════════════════════════
+    //  INDEXEDDB — photo persistence
+    // ═══════════════════════════════════════════════════════
+    const IDB_NAME = 'pathannotate_idb', IDB_STORE = 'photo', IDB_PHOTO_KEY = 'current';
+
+    function openPhotoIDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE);
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror = reject;
+      });
+    }
+
+    async function savePhotoToIDB(dataURL) {
+      try {
+        const db = await openPhotoIDB();
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(dataURL, IDB_PHOTO_KEY);
+      } catch (e) {}
+    }
+
+    async function loadPhotoFromIDB() {
+      try {
+        const db = await openPhotoIDB();
+        return new Promise((resolve) => {
+          const req = db.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).get(IDB_PHOTO_KEY);
+          req.onsuccess = e => resolve(e.target.result || null);
+          req.onerror   = () => resolve(null);
+        });
+      } catch (e) { return null; }
+    }
+
+    async function clearPhotoIDB() {
+      try {
+        const db = await openPhotoIDB();
+        db.transaction(IDB_STORE, 'readwrite').objectStore(IDB_STORE).delete(IDB_PHOTO_KEY);
+      } catch (e) {}
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  RESET ALL — clears everything back to blank state
+    // ═══════════════════════════════════════════════════════
+    function resetAll() {
+      if (!confirm('Reset everything? This will clear all annotations and remove the current photo.')) return;
+      clearPhotoIDB();
+      localStorage.removeItem(LS_KEY);
+      annots = []; selectedIds.clear(); annId = 0;
+      caseNum = ''; specimenText = '';
+      imgDataURL = null;
+      if (cv) { cv.dispose(); cv = null; }
+      document.getElementById('drop-zone').style.display = '';
+      document.getElementById('canvas-wrapper').style.display = 'none';
+      document.getElementById('file-name').textContent = 'no image loaded';
+      document.getElementById('st-dims').textContent = '';
+      refreshList(); refreshCount();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  REPLACE BACKGROUND — swap photo without clearing annotations
+    // ═══════════════════════════════════════════════════════
+    function replaceBackground(dataURL, name) {
+      imgDataURL = dataURL;
+      savePhotoToIDB(dataURL);
+      if (name) {
+        document.getElementById('file-name').textContent = name;
+        const tmp = new Image();
+        tmp.onload = () => { document.getElementById('st-dims').textContent = `${tmp.width}×${tmp.height}`; };
+        tmp.src = dataURL;
+      }
+      cv.getObjects().filter(o => o._bg).forEach(o => cv.remove(o));
+      fabric.Image.fromURL(dataURL, fImg => {
+        fImg.scaleToWidth(cv.width); fImg.scaleToHeight(cv.height);
+        lockBg(fImg);
+        cv.add(fImg);
+        cv.sendToBack(fImg);
+        cv.renderAll();
+        pushHist();
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════
     //  IMAGE LOADING
     // ═══════════════════════════════════════════════════════
     document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) readImg(e.target.files[0]); });
@@ -1588,7 +1686,17 @@
 
     function readImg(file) {
       const r = new FileReader();
-      r.onload = ev => { imgDataURL = ev.target.result; initCanvas(imgDataURL, file.name); };
+      r.onload = ev => {
+        const dataURL = ev.target.result;
+        // If annotations already exist, preserve them — just swap the background
+        if (cv && annots.length > 0) {
+          replaceBackground(dataURL, file.name);
+        } else {
+          imgDataURL = dataURL;
+          savePhotoToIDB(dataURL);
+          initCanvas(dataURL, file.name);
+        }
+      };
       r.readAsDataURL(file);
     }
 
@@ -1732,7 +1840,14 @@
           if (w < 0) { l = p.x; w = -w; } if (h < 0) { t = p.y; h = -h; }
           activeObj.set({ left: l, top: t, width: w, height: h });
         } else {
-          activeObj.set({ x2: p.x, y2: p.y });
+          // Line: Shift snaps to horizontal or vertical
+          let ex = p.x, ey = p.y;
+          if (shiftHeld) {
+            const dx = Math.abs(p.x - ox), dy = Math.abs(p.y - oy);
+            if (dx >= dy) ey = oy;   // horizontal snap
+            else          ex = ox;   // vertical snap
+          }
+          activeObj.set({ x2: ex, y2: ey });
         }
         cv.renderAll();
       });
@@ -1780,7 +1895,20 @@
         document.querySelectorAll('.ann-item').forEach(i => i.classList.remove('sel'));
       });
 
-      cv.on('object:moving', opt => glueLbl(opt.target));
+      cv.on('object:moving', opt => {
+        const obj = opt.target;
+        glueLbl(obj);
+        // Shift-constrain: lock movement to the dominant axis for lines
+        if (shiftHeld && obj._kind === 'line') {
+          if (!obj._snapStart) obj._snapStart = { left: obj.left, top: obj.top };
+          const s = obj._snapStart;
+          const dx = Math.abs(obj.left - s.left), dy = Math.abs(obj.top - s.top);
+          if (dx >= dy) obj.set('top', s.top);
+          else          obj.set('left', s.left);
+        } else {
+          obj._snapStart = null;
+        }
+      });
       cv.on('object:scaling', opt => glueLbl(opt.target));
       cv.on('object:rotating', opt => glueLbl(opt.target));
       cv.on('object:modified', () => pushHist());
@@ -1906,8 +2034,11 @@
       const W = shape.width  * (shape.scaleX || 1);
       const H = shape.height * (shape.scaleY || 1);
       const cos = Math.cos(angle), sin = Math.sin(angle);
-      const localX = a.lx * (W / 2) + a.lox;
-      const localY = a.ly * (H / 2) + a.oyFn();
+      // When the shape is rotated, push the label further from the border so it
+      // doesn't clip the stroke. Extra clearance scales with sin(angle) up to 8px.
+      const rotPad = angle !== 0 ? 8 : 0;
+      const localX = a.lx * (W / 2 + (a.lx !== 0 ? rotPad : 0)) + a.lox;
+      const localY = a.ly * (H / 2 + (a.ly !== 0 ? rotPad : 0)) + a.oyFn();
       return {
         x: center.x + localX * cos - localY * sin,
         y: center.y + localX * sin + localY * cos,
@@ -2147,12 +2278,48 @@
     // ═══════════════════════════════════════════════════════
     //  LABEL KEY
     // ═══════════════════════════════════════════════════════
+    // Returns the first whitespace-delimited token from the Specimen field.
+    // e.g. "1 Endometrium" → "1",  "A Prostate" → "A"
+    function getSpecToken() {
+      return (specimenText || '').trim().split(/\s+/)[0] || '';
+    }
+
+    // Format a single block label with the specimen prefix.
+    // Numeric spec + alpha labels  → "1A-" / "1D-1E"
+    // Alpha spec   + numeric labels → "A1-" / "A4-5"
+    // No spec: fallback to label + "-" for singles, label as-is for ranges
+    function formatBlockLabel(label, tok) {
+      const tokIsNum  = /^\d+$/.test(tok);
+      const alphaRange = label.match(/^([A-Za-z]+)-([A-Za-z]+)$/);
+      const numRange   = label.match(/^(\d+)-(\d+)$/);
+
+      if (!tok) {
+        // No spec token: just append dash for single labels
+        return (alphaRange || numRange) ? label : label + '-';
+      }
+
+      if (tokIsNum) {
+        // Spec is numeric (e.g. "1"), blocks expected to be alpha
+        if (alphaRange) return `${tok}${alphaRange[1]}-${tok}${alphaRange[2]}`;   // "1D-1E"
+        if (/^[A-Za-z]+$/.test(label)) return `${tok}${label}-`;                  // "1A-"
+        if (numRange) return `${tok}-${numRange[1]}-${numRange[2]}`;              // "1-3-4" (edge case)
+        return `${tok}${label}-`;
+      } else {
+        // Spec is alpha (e.g. "A"), blocks expected to be numeric
+        if (numRange) return `${tok}${numRange[1]}-${numRange[2]}`;   // "A4-5"
+        if (/^\d+$/.test(label)) return `${tok}${label}-`;            // "A1-"
+        if (alphaRange) return `${tok}${alphaRange[1]}-${tok}${alphaRange[2]}`; // edge case
+        return `${tok}${label}-`;
+      }
+    }
+
     function refreshLabelKey() {
-      const labels = annots
+      const tok = getSpecToken();
+      const lines = annots
         .filter(a => a.kind === 'rect' && a.label)
-        .map(a => a.label);
+        .map(a => formatBlockLabel(a.label, tok));
       const el = document.getElementById('label-key');
-      el.textContent = labels.length ? labels.join(', ') : '—';
+      el.textContent = lines.length ? lines.join('\n') : '—';
     }
 
     function copyLabelKey() {
@@ -2212,6 +2379,7 @@
           canvasWidth: cv.width, canvasHeight: cv.height,
           meta: snapMeta(), lbl: getLbl(), annId,
           titleText: getTitleText() || null,
+          caseNumber: caseNum, specimen: specimenText,
         };
         localStorage.setItem(LS_KEY, JSON.stringify(session));
       } catch (e) { /* quota exceeded — silently ignore */ }
@@ -2416,35 +2584,44 @@
     // ═══════════════════════════════════════════════════════
     //  SPECIMEN TITLE
     // ═══════════════════════════════════════════════════════
+
+    // Returns the combined "CaseNum-Specimen" string shown on canvas / used for filename
     function getTitleText() {
-      if (!cv) return null;
-      const t = cv.getObjects().find(o => o.isTitle && (o.type === 'i-text' || o.type === 'text'));
-      return t ? t.text : null;
+      const cn = caseNum.trim(), sp = specimenText.trim();
+      if (cn && sp) return `${cn}-${sp}`;
+      return cn || sp || null;
     }
 
     function openTitle() {
-      const inp = document.getElementById('title-input');
-      inp.value = getTitleText() || '';
+      document.getElementById('case-num-input').value = caseNum;
+      document.getElementById('specimen-input').value = specimenText;
       document.getElementById('title-modal').classList.add('open');
-      inp.focus(); inp.select();
+      document.getElementById('case-num-input').focus();
     }
     function closeTitle() { document.getElementById('title-modal').classList.remove('open'); }
 
     document.getElementById('title-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeTitle(); });
-    document.getElementById('title-input').addEventListener('keydown', e => {
+    // Allow Enter to advance from Case Number to Specimen, then Apply
+    document.getElementById('case-num-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); document.getElementById('specimen-input').focus(); }
+      if (e.key === 'Escape') closeTitle();
+    });
+    document.getElementById('specimen-input').addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); applyTitle(); }
       if (e.key === 'Escape') closeTitle();
     });
 
     function applyTitle() {
-      const text = document.getElementById('title-input').value.trim();
+      caseNum      = document.getElementById('case-num-input').value.trim();
+      specimenText = document.getElementById('specimen-input').value.trim();
       closeTitle();
       if (!cv) return;
 
       // Remove existing title objects
       cv.getObjects().filter(o => o.isTitle).forEach(o => cv.remove(o));
 
-      if (!text) { cv.renderAll(); pushHist(); return; }
+      const text = getTitleText();
+      if (!text) { cv.renderAll(); pushHist(); refreshLabelKey(); return; }
 
       const fz = 14, pad = 8;
       const bw = Math.max(text.length * 9 + pad * 2, 160);
@@ -2464,12 +2641,9 @@
         selectable: true, evented: true, isTitle: true,
       });
       cv.add(itxt);
-
-      // When user edits the IText directly, keep it as the title (nothing extra needed –
-      // getTitleText() reads from canvas at call time)
       itxt.on('editing:exited', () => pushHist());
 
-      cv.renderAll(); pushHist();
+      cv.renderAll(); pushHist(); refreshLabelKey();
     }
 
     // ═══════════════════════════════════════════════════════
@@ -2481,7 +2655,7 @@
       const title = getTitleText();
       const session = {
         v: 5, imageName: document.getElementById('file-name').textContent,
-        // imageDataURL intentionally omitted — export image separately with Export JPEG
+        // imageDataURL intentionally omitted — export image separately with Export Photo.
         // Background image src is also stripped from canvasJSON to keep file size small.
         // On load the bg is recreated from the current image or a placeholder.
         canvasJSON: getCanvasJSON(),
@@ -2489,6 +2663,7 @@
         meta: snapMeta(),
         lbl: getLbl(), annId,
         titleText: title || null,
+        caseNumber: caseNum, specimen: specimenText,
       };
       const fname = (title ? title.replace(/[^a-z0-9_\-. ]/gi, '_') : 'pathannotate-session') + '.json';
       const blob = new Blob([JSON.stringify(session, null, 2)], { type: 'application/json' });
@@ -2544,6 +2719,8 @@
             annots = s.meta.map(m => ({ id: m.id, color: m.color, label: m.label, kind: m.kind,
               shape: byId[m.id] || null, lbl: lblById[m.id] || null })).filter(a => a.shape);
             annId = s.annId; setLbl(s.lbl);
+            if (s.caseNumber !== undefined) caseNum = s.caseNumber;
+            if (s.specimen   !== undefined) specimenText = s.specimen;
             selectedIds.clear();
             refreshList(); refreshCount(); histLock = false;
             pushHist(); syncHistBtns(); setTool(tool);
@@ -2602,7 +2779,9 @@
     // ═══════════════════════════════════════════════════════
     //  KEYBOARD
     // ═══════════════════════════════════════════════════════
+    document.addEventListener('keyup', e => { if (e.key === 'Shift') shiftHeld = false; });
     document.addEventListener('keydown', e => {
+      if (e.key === 'Shift') shiftHeld = true;
       const tag = document.activeElement.tagName;
       const inInput = tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || document.activeElement.isContentEditable;
       // Consider Fabric.js IText editing as "in input" so Backspace/Ctrl+C etc.
@@ -2626,15 +2805,23 @@
     });
 
     // ═══════════════════════════════════════════════════════
-    //  AUTO-RESTORE on page load (from localStorage)
+    //  AUTO-RESTORE on page load (from localStorage + IDB)
     // ═══════════════════════════════════════════════════════
-    (function () {
+    (async function () {
       // Restore UI settings (theme, color, sliders) before anything else
       loadSettings();
 
+      // Load saved photo from IndexedDB first
+      const savedPhoto = await loadPhotoFromIDB();
+      if (savedPhoto) imgDataURL = savedPhoto;
+
       try {
         const raw = localStorage.getItem(LS_KEY);
-        if (!raw) return;
+        if (!raw) {
+          // No session data — just show the photo if we have one
+          if (savedPhoto) initCanvas(savedPhoto, '');
+          return;
+        }
         const s = JSON.parse(raw);
         if (s && s.canvasJSON) applySessionObject(s);
       } catch (e) { /* corrupt data — ignore */ }
