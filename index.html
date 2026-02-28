@@ -80,6 +80,16 @@
       color: var(--muted)
     }
 
+    .logo-ver {
+      font-size: 8px;
+      color: var(--muted);
+      letter-spacing: .05em;
+      margin-left: 5px;
+      text-transform: none;
+      vertical-align: middle;
+      opacity: .7
+    }
+
     .hdr-r {
       display: flex;
       align-items: center;
@@ -990,6 +1000,20 @@
       filter: brightness(1.1)
     }
 
+    .privacy-link {
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 9.5px;
+      text-decoration: none;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      transition: color .15s
+    }
+
+    .privacy-link:hover { color: var(--accent) }
+
     .leg-preview {
       border: 1px solid var(--border);
       border-radius: 5px;
@@ -1029,7 +1053,7 @@
 <body>
 
   <header>
-    <div class="logo">Path<span>Annotate</span></div>
+    <div class="logo">Path<span>Annotate</span><span class="logo-ver" id="logo-ver"></span></div>
     <div class="hdr-r">
       <button class="pill" onclick="document.getElementById('file-input').click()">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1263,6 +1287,9 @@
   </div>
 
   <div class="statusbar">
+    <div class="stat" id="ver-stat"></div>
+    <button class="privacy-link"
+      onclick="document.getElementById('privacy-modal').classList.add('open')">Privacy</button>
     <div class="stat" style="margin-left:auto">R=Rect · E=Line · T=Block · S=Select · Del=Delete · Ctrl+Z/Y=Undo/Redo · RightClick=Paste</div>
   </div>
 
@@ -1346,11 +1373,32 @@
     </div>
   </div>
 
+  <!-- Privacy modal -->
+  <div class="modal-bg" id="privacy-modal">
+    <div class="modal" style="width:420px">
+      <h3>Privacy Policy</h3>
+      <p style="font-size:12px;line-height:1.6">This application runs entirely client-side. No information leaves your device.</p>
+      <p style="font-size:12px;line-height:1.6">Images, text, and other content remain in the browser's cache and are never sent externally.</p>
+      <p style="font-size:12px;line-height:1.6;color:var(--muted)">No analytics, tracking, or telemetry of any kind is collected or transmitted.</p>
+      <div class="modal-acts">
+        <button class="m-ok"
+          onclick="document.getElementById('privacy-modal').classList.remove('open')">Close</button>
+      </div>
+    </div>
+  </div>
+
   <input type="file" id="file-input" accept="image/*">
   <input type="file" id="json-input" accept=".json">
 
   <script>
     'use strict';
+    // ═══════════════════════════════════════════════════════
+    //  VERSION
+    // ═══════════════════════════════════════════════════════
+    const VERSION = '1.1.0';
+    document.getElementById('logo-ver').textContent = 'v' + VERSION;
+    document.getElementById('ver-stat').textContent = 'v' + VERSION;
+
     // ═══════════════════════════════════════════════════════
     //  CONFIG
     // ═══════════════════════════════════════════════════════
@@ -1948,7 +1996,7 @@
               autoInc(lbl);
             }
             // If they changed it to a non-block label, the counter stays at the same value
-            refreshList(); refreshCount(); pushHist();
+            refreshList(true); refreshCount(); pushHist();
           });
           return;
         }
@@ -2024,7 +2072,7 @@
         // on the next mouse:down (before drawing begins).
         if (tool === 'rect') pendingIncLabel = usedLbl;
 
-        refreshList(); refreshCount(); pushHist();
+        refreshList(true); refreshCount(); pushHist();
         activeObj = null;
       });
 
@@ -2358,8 +2406,10 @@
         document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('active', s.title === c));
         color = c;
       }
-      const a = annots.find(a => a.shape === obj || a.lbl === obj);
-      document.querySelectorAll('.ann-item').forEach(el => el.classList.toggle('sel', a && selectedIds.has(a.id)));
+      document.querySelectorAll('.ann-item').forEach(el => {
+        const elId = +el.dataset.id;
+        el.classList.toggle('sel', selectedIds.has(elId));
+      });
     }
 
     // ═══════════════════════════════════════════════════════
@@ -2442,7 +2492,7 @@
 
     let lastClickedIdx = null;
 
-    function refreshList() {
+    function refreshList(scrollEnd) {
       const list = document.getElementById('annot-list');
       list.innerHTML = '';
       annots.forEach((a, idx) => {
@@ -2494,7 +2544,8 @@
 
         list.appendChild(el);
       });
-      refreshLabelKey();
+      refreshLabelKey(scrollEnd);
+      if (scrollEnd) scrollToEnd('annot-list');
     }
 
     // Duplicate an annotation from the sidebar list, offset slightly from original
@@ -2525,6 +2576,11 @@
 
     function refreshCount() {
       document.getElementById('st-count').textContent = annots.length;
+    }
+
+    function scrollToEnd(id) {
+      const el = document.getElementById(id);
+      if (el) el.scrollTop = el.scrollHeight;
     }
 
     // ═══════════════════════════════════════════════════════
@@ -2579,7 +2635,7 @@
       });
     }
 
-    function refreshLabelKey() {
+    function refreshLabelKey(scrollEnd) {
       const tok = getSpecToken();
       const container = document.getElementById('label-key');
       container.innerHTML = '';
@@ -2610,6 +2666,7 @@
         row.appendChild(inp);
         container.appendChild(row);
       });
+      if (scrollEnd) scrollToEnd('label-key');
     }
 
     function copyLabelKey() {
@@ -2620,7 +2677,8 @@
         const lbl = a.kind === 'text'
           ? formatBlockLabel((a.shape && a.shape.text) || a.label, tok)
           : formatBlockLabel(a.label, tok);
-        return a.notes ? `${lbl} ${a.notes}` : lbl;
+        if (!a.notes) return lbl;
+        return lbl.endsWith('-') ? `${lbl}${a.notes}` : `${lbl} ${a.notes}`;
       });
       navigator.clipboard.writeText(lines.join('\n')).then(() => {
         const btn = document.getElementById('key-copy-btn');
@@ -2923,6 +2981,9 @@
     function closeTitle() { document.getElementById('title-modal').classList.remove('open'); }
 
     document.getElementById('title-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeTitle(); });
+    document.getElementById('privacy-modal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) document.getElementById('privacy-modal').classList.remove('open');
+    });
     // Allow Enter to advance from Case Number to Specimen, then Apply
     document.getElementById('case-num-input').addEventListener('keydown', e => {
       if (e.key === 'Enter') { e.preventDefault(); document.getElementById('specimen-input').focus(); }
@@ -2937,6 +2998,17 @@
       caseNum      = document.getElementById('case-num-input').value.trim();
       specimenText = document.getElementById('specimen-input').value.trim();
       closeTitle();
+
+      // Auto-seed block label based on specimen token type:
+      //   numeric token (e.g. "2" from "2 Left Kidney")  → alpha labels: A, B, C…
+      //   alpha token   (e.g. "B" from "B Kidney")        → numeric labels: 1, 2, 3…
+      const _tok = getSpecToken();
+      if (_tok) {
+        if (/^\d+$/.test(_tok)) setLbl('A');
+        else if (/^[A-Za-z]+$/.test(_tok)) setLbl('1');
+        saveSettings();
+      }
+
       if (!cv) return;
 
       // Remove existing title objects
@@ -3119,7 +3191,7 @@
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && !inInput && !iTextEditing) { e.preventDefault(); pasteFromClipboard(); return; }
 
       if (inInput) return;
-      if (e.key === 'Escape') { closeEdit(); closeLegend(); if (cv) { cv.discardActiveObject(); cv.renderAll(); } selectedIds.clear(); refreshList(); return; }
+      if (e.key === 'Escape') { closeEdit(); closeLegend(); document.getElementById('privacy-modal').classList.remove('open'); if (cv) { cv.discardActiveObject(); cv.renderAll(); } selectedIds.clear(); refreshList(); return; }
       if (e.key.toLowerCase() === 'r') setTool('rect');
       if (e.key.toLowerCase() === 'e') setTool('line');
       if (e.key.toLowerCase() === 't') setTool('text');
