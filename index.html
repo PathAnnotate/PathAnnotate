@@ -395,14 +395,6 @@
       color: var(--accent)
     }
 
-    .blk-hint {
-      font-family: 'DM Mono', monospace;
-      font-size: 9px;
-      color: var(--muted);
-      padding: 0 2px;
-      line-height: 1.5
-    }
-
     /* LABEL KEY */
     .key-row {
       display: flex;
@@ -432,21 +424,6 @@
       color: var(--accent)
     }
 
-    .key-display {
-      font-family: 'DM Mono', monospace;
-      font-size: 10px;
-      color: var(--text);
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      padding: 5px 7px;
-      margin-top: 3px;
-      min-height: 28px;
-      line-height: 1.7;
-      word-break: break-all;
-      white-space: pre-line
-    }
-
     /* CHECKBOXES */
     .check-row {
       display: flex;
@@ -469,34 +446,33 @@
       font-family: 'DM Mono', monospace
     }
 
-    /* ANCHOR GRID */
-    .anchor-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 3px;
+    /* ANCHOR / FREEFORM TOGGLE */
+    .anchor-toggle-row {
+      display: flex;
+      gap: 4px;
       padding: 1px 2px
     }
 
-    .anchor-cell {
-      height: 22px;
-      border-radius: 4px;
+    .anchor-toggle {
+      flex: 1;
+      padding: 5px 4px;
+      border-radius: 5px;
       border: 1px solid var(--border);
       background: var(--bg);
+      color: var(--muted);
       cursor: pointer;
-      transition: all .1s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      color: var(--muted)
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      transition: all .15s;
+      text-align: center
     }
 
-    .anchor-cell:hover {
+    .anchor-toggle:hover {
       border-color: var(--accent);
       color: var(--accent)
     }
 
-    .anchor-cell.active {
+    .anchor-toggle.active {
       background: var(--accent-dim);
       border-color: var(--accent);
       color: var(--accent)
@@ -540,7 +516,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
+      overflow: auto;
       position: relative;
       background: var(--cvbg);
       background-image: linear-gradient(var(--grid) 1px, transparent 1px),
@@ -631,7 +607,7 @@
       display: flex;
       flex-direction: column;
       gap: 2px;
-      max-height: 180px
+      max-height: 160px
     }
 
     .annot-list::-webkit-scrollbar {
@@ -677,25 +653,133 @@
       border: 1px solid var(--border)
     }
 
-    .ann-del {
+    .ann-item-actions {
       margin-left: auto;
+      display: flex;
+      gap: 1px;
+      opacity: 0;
+      transition: opacity .1s
+    }
+
+    .ann-item:hover .ann-item-actions {
+      opacity: 1
+    }
+
+    .ann-del, .ann-dup {
       background: none;
       border: none;
       color: var(--muted);
       cursor: pointer;
       padding: 2px;
       display: flex;
-      opacity: 0;
-      transition: opacity .1s
+      border-radius: 3px;
+      transition: color .1s
     }
 
-    .ann-item:hover .ann-del {
-      opacity: 1
+    .ann-del:hover { color: var(--danger) }
+    .ann-dup:hover { color: var(--accent) }
+
+    /* BLOCK KEY LIST */
+    .key-list {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-height: 160px;
+      margin-top: 3px
     }
 
-    .ann-del:hover {
-      color: var(--danger)
+    .key-list::-webkit-scrollbar { width: 3px }
+    .key-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px }
+
+    .key-entry {
+      display: flex;
+      align-items: center;
+      gap: 4px
     }
+
+    .key-entry-lbl {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--text);
+      min-width: 44px;
+      flex-shrink: 0
+    }
+
+    .key-entry-notes {
+      flex: 1;
+      min-width: 0;
+      background: var(--inp);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      outline: none;
+      transition: border-color .15s
+    }
+
+    .key-entry-notes:focus { border-color: var(--accent) }
+    .key-entry-notes::placeholder { color: var(--muted) }
+
+    /* ZOOM BAR */
+    .zoom-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 10px;
+      height: 28px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0
+    }
+
+    .zoom-bar input[type=range] {
+      width: 120px;
+      height: 3px
+    }
+
+    .zoom-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 4px;
+      width: 20px;
+      height: 18px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Mono', monospace;
+      transition: all .15s;
+      flex-shrink: 0;
+      padding: 0
+    }
+
+    .zoom-btn:hover { border-color: var(--accent); color: var(--accent) }
+
+    .zoom-pct {
+      font-family: 'DM Mono', monospace;
+      font-size: 9.5px;
+      color: var(--muted);
+      min-width: 34px
+    }
+
+    .zoom-fit-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 4px;
+      padding: 1px 7px;
+      cursor: pointer;
+      font-size: 9.5px;
+      font-family: 'DM Mono', monospace;
+      transition: all .15s
+    }
+
+    .zoom-fit-btn:hover { border-color: var(--accent); color: var(--accent) }
 
     /* INLINE EDIT POPUP */
     .edit-popup {
@@ -979,13 +1063,6 @@
         Load
       </button>
       <div class="hdr-sep"></div>
-      <button class="pill pill-danger" id="del-sel-btn" onclick="deleteSelected()">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="3 6 5 6 21 6" />
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-        </svg>
-        Delete Sel
-      </button>
       <button class="pill pill-danger" onclick="clearAll()">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
@@ -1040,26 +1117,6 @@
         Insert Legend…
       </button>
 
-      <div class="divider"></div>
-
-      <!-- ── UNDO / REDO ─────────────────────────────── -->
-      <div class="undo-redo-row">
-        <button class="btn btn-flat btn-half" id="undo-btn" onclick="doUndo()" disabled>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <polyline points="9 14 4 9 9 4" />
-            <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
-          </svg>
-          Undo
-        </button>
-        <button class="btn btn-flat btn-half" id="redo-btn" onclick="doRedo()" disabled>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <polyline points="15 14 20 9 15 4" />
-            <path d="M4 20v-7a4 4 0 0 1 4-4h12" />
-          </svg>
-          Redo
-        </button>
-      </div>
-
       <!-- ── DRAWING TOOLS ───────────────────────────── -->
       <div class="slabel">Tool</div>
       <button class="btn active" id="tool-rect" onclick="setTool('rect')">
@@ -1080,7 +1137,7 @@
           <line x1="9" y1="20" x2="15" y2="20" />
           <line x1="12" y1="4" x2="12" y2="20" />
         </svg>
-        Text Label<span class="kbdtag">T</span>
+        Block Label<span class="kbdtag">T</span>
       </button>
       <button class="btn" id="tool-select" onclick="setTool('select')">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1089,45 +1146,32 @@
         Select / Move<span class="kbdtag">S</span>
       </button>
 
-      <div class="slabel">Block Label</div>
-      <div class="blk-row">
-        <button class="spin" onclick="spinMinus()" title="Shrink / decrement">−</button>
-        <input type="text" class="blk-input" id="block-label" value="1" placeholder="1, 2-4, A">
-        <button class="spin" onclick="spinPlus()" title="Extend range / increment">+</button>
-      </div>
-      <div class="blk-hint">Auto-increment labels — numeric or alpha supported.</div>
+      <!-- ── ANNOTATIONS ─────────────────────────────── -->
+      <div class="slabel">Annotations <span
+          style="font-size:9px;text-transform:none;letter-spacing:0">(Ctrl/Shift+click)</span></div>
+      <div class="annot-list" id="annot-list"></div>
 
-      <div class="key-row">
-        <div class="slabel" style="margin:0;flex:1">Block Key</div>
-        <button class="key-copy-btn" id="key-copy-btn" onclick="copyLabelKey()" title="Copy key to clipboard">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="9" y="9" width="13" height="13" rx="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+      <div class="divider"></div>
+
+      <!-- ── UNDO / REDO ─────────────────────────────── -->
+      <div class="undo-redo-row">
+        <button class="btn btn-flat btn-half" id="undo-btn" onclick="doUndo()" disabled>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="9 14 4 9 9 4" />
+            <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
           </svg>
-          Copy
+          Undo
+        </button>
+        <button class="btn btn-flat btn-half" id="redo-btn" onclick="doRedo()" disabled>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="15 14 20 9 15 4" />
+            <path d="M4 20v-7a4 4 0 0 1 4-4h12" />
+          </svg>
+          Redo
         </button>
       </div>
-      <div class="key-display" id="label-key">—</div>
 
-      <div class="slabel">Rect Options</div>
-      <label class="check-row">
-        <input type="checkbox" id="show-label" checked>
-        <span>Auto-attach label to rect</span>
-      </label>
-
-      <div class="slabel">Label Anchor</div>
-      <div class="anchor-grid" id="anchor-grid">
-        <div class="anchor-cell active" data-anc="tl">↖</div>
-        <div class="anchor-cell" data-anc="tc">↑</div>
-        <div class="anchor-cell" data-anc="tr">↗</div>
-        <div class="anchor-cell" data-anc="ml">←</div>
-        <div class="anchor-cell" data-anc="mc">·</div>
-        <div class="anchor-cell" data-anc="mr">→</div>
-        <div class="anchor-cell" data-anc="bl">↙</div>
-        <div class="anchor-cell" data-anc="bc">↓</div>
-        <div class="anchor-cell" data-anc="br">↘</div>
-      </div>
-
+      <!-- ── STYLE CONTROLS ──────────────────────────── -->
       <div class="slabel">Line Style</div>
       <div class="line-style-row">
         <button class="lstyle-btn active" id="lstyle-solid" onclick="setLineStyle('solid')">— Solid</button>
@@ -1150,12 +1194,41 @@
         <input type="range" id="font-s" min="8" max="36" value="13">
       </div>
 
-      <div class="divider"></div>
+      <!-- ── BLOCK LABEL ─────────────────────────────── -->
+      <div class="slabel">Block Label</div>
+      <div class="blk-row">
+        <button class="spin" onclick="spinMinus()" title="Shrink / decrement">−</button>
+        <input type="text" class="blk-input" id="block-label" value="1" placeholder="1, 2-4, A">
+        <button class="spin" onclick="spinPlus()" title="Extend range / increment">+</button>
+      </div>
 
-      <!-- ── ANNOTATIONS ─────────────────────────────── -->
-      <div class="slabel">Annotations <span
-          style="font-size:9px;text-transform:none;letter-spacing:0">(Ctrl/Shift+click)</span></div>
-      <div class="annot-list" id="annot-list"></div>
+      <label class="check-row">
+        <input type="checkbox" id="auto-inc" checked>
+        <span>Auto-increment</span>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" id="show-label" checked>
+        <span>Auto-attach to rectangle</span>
+      </label>
+
+      <div class="slabel">Label Position</div>
+      <div class="anchor-toggle-row">
+        <button class="anchor-toggle active" id="anchor-btn" onclick="setAnchorMode('anchor')">⊞ Anchor</button>
+        <button class="anchor-toggle" id="freeform-btn" onclick="setAnchorMode('freeform')">↗ Freeform</button>
+      </div>
+
+      <!-- ── BLOCK KEY ───────────────────────────────── -->
+      <div class="key-row">
+        <div class="slabel" style="margin:0;flex:1">Block Key</div>
+        <button class="key-copy-btn" id="key-copy-btn" onclick="copyLabelKey()" title="Copy key to clipboard">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          Copy
+        </button>
+      </div>
+      <div class="key-list" id="label-key"></div>
 
     </div><!-- /sidebar -->
 
@@ -1175,12 +1248,22 @@
     </div>
   </div>
 
+  <div class="zoom-bar">
+    <button class="zoom-btn" onclick="adjustZoom(-25)" title="Zoom out">−</button>
+    <input type="range" id="zoom-slider" min="25" max="400" value="100" step="5"
+      oninput="setZoom(+this.value)" title="Zoom">
+    <button class="zoom-btn" onclick="adjustZoom(+25)" title="Zoom in">+</button>
+    <span class="zoom-pct" id="zoom-pct">100%</span>
+    <button class="zoom-fit-btn" onclick="resetZoom()">Fit</button>
+    <div style="margin-left:auto;display:flex;gap:16px">
+      <div class="stat">Tool: <span id="st-tool">Rectangle</span></div>
+      <div class="stat">Objects: <span id="st-count">0</span></div>
+      <div class="stat" id="st-dims"></div>
+    </div>
+  </div>
+
   <div class="statusbar">
-    <div class="stat">Tool: <span id="st-tool">Rectangle</span></div>
-    <div class="stat">Objects: <span id="st-count">0</span></div>
-    <div class="stat" id="st-dims"></div>
-    <div class="stat" style="margin-left:auto">R=Rect · E=Line · T=Text · S=Select · Del=Delete · Ctrl+Z/Y=Undo/Redo ·
-      DblClick=Edit</div>
+    <div class="stat" style="margin-left:auto">R=Rect · E=Line · T=Block · S=Select · Del=Delete · Ctrl+Z/Y=Undo/Redo · RightClick=Paste</div>
   </div>
 
   <!-- Inline label editor -->
@@ -1302,19 +1385,24 @@
     let strokeW = 2;
     let fontSize = 13;
     let anchor = 'tl';
+    let anchorMode = 'anchor';   // 'anchor' | 'freeform'
+    let autoIncEnabled = true;   // auto-increment block label after placing rect
     let lineStyle = 'solid';
     let pendingIncLabel = null;  // label used for last-drawn rect, cleared on deselect/next-draw
 
     let drawing = false, ox = 0, oy = 0, activeObj = null;
-    let annots = [];   // {id, shape, lbl, color, label, kind}
+    let annots = [];   // {id, shape, lbl, color, label, kind, notes, _freeOffset}
     let annId = 0;
     let selectedIds = new Set(); // ids selected in sidebar list
     let lastMousePos = null;   // last known pointer position on canvas (for paste)
     let clipboard = [];        // [{ann, relX, relY}] for Ctrl+C / Ctrl+V
     let shiftHeld = false;     // tracks Shift key for line snapping
+    let lastSelectedAnn = null; // most recently selected annotation (for right-click paste)
 
     let undoStack = [], redoStack = [], histLock = false;
     let imgDataURL = null;
+    let baseW = 0, baseH = 0;   // original canvas dimensions (for zoom)
+    let currentZoom = 100;       // current zoom % (100 = 1:1)
 
     // Specimen title fields (persisted in session)
     let caseNum = '';
@@ -1323,13 +1411,21 @@
     // ═══════════════════════════════════════════════════════
     //  THEME
     // ═══════════════════════════════════════════════════════
-    let dark = true;
-    function toggleTheme() {
-      dark = !dark;
-      document.body.classList.toggle('light', !dark);
+    let dark = false;
+    // Apply light mode immediately (before settings load overrides)
+    document.body.classList.add('light');
+
+    function updateThemeBtn() {
       document.getElementById('theme-btn').innerHTML = dark
         ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>Light`
         : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>Dark`;
+    }
+    updateThemeBtn();
+
+    function toggleTheme() {
+      dark = !dark;
+      document.body.classList.toggle('light', !dark);
+      updateThemeBtn();
       applyFabricTheme();
       saveSettings();
     }
@@ -1423,17 +1519,18 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  ANCHOR GRID
+    //  ANCHOR / FREEFORM TOGGLE
     // ═══════════════════════════════════════════════════════
-    document.querySelectorAll('.anchor-cell').forEach(cell => {
-      cell.addEventListener('click', () => {
-        document.querySelectorAll('.anchor-cell').forEach(c => c.classList.remove('active'));
-        cell.classList.add('active');
-        anchor = cell.dataset.anc;
-        saveSettings();
-        // Reposition the label on the currently selected rect (if any)
-        if (cv) { const obj = cv.getActiveObject(); if (obj && obj._kind === 'rect') glueLbl(obj); }
-      });
+    function setAnchorMode(mode) {
+      anchorMode = mode;
+      document.getElementById('anchor-btn').classList.toggle('active', mode === 'anchor');
+      document.getElementById('freeform-btn').classList.toggle('active', mode === 'freeform');
+      saveSettings();
+    }
+
+    document.getElementById('auto-inc').addEventListener('change', function () {
+      autoIncEnabled = this.checked;
+      saveSettings();
     });
 
     // ═══════════════════════════════════════════════════════
@@ -1533,7 +1630,16 @@
       if (/^[A-Za-z]+$/.test(v)) { applySpinResult(prevAlpha(v)); return; }
     }
 
+    // Returns true if text is a valid block label:
+    // single digit(s), capital letters, or a range of either (e.g. 1, 2-4, A, B-D)
+    function isBlockLabel(text) {
+      if (!text) return false;
+      const t = text.trim();
+      return /^(\d+(-\d+)?|[A-Z]+(-[A-Z]+)?)$/.test(t);
+    }
+
     function autoInc(used) {
+      if (!autoIncEnabled) return;
       const rm = used.match(/^(\d+)-(\d+)$/);
       if (rm) { setLbl(String(+rm[2] + 1)); return; }
       const nm = used.match(/^(\d+)$/);
@@ -1551,7 +1657,7 @@
     function saveSettings() {
       try {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify({
-          color, strokeW, fontSize, anchor, lineStyle, dark,
+          color, strokeW, fontSize, anchor, anchorMode, autoIncEnabled, lineStyle, dark,
           lbl: getLbl(),
         }));
       } catch (e) {}
@@ -1577,9 +1683,11 @@
           document.getElementById('font-s').value = fontSize;
           document.getElementById('fs-val').textContent = fontSize + 'px';
         }
-        if (s.anchor) {
-          anchor = s.anchor;
-          document.querySelectorAll('.anchor-cell').forEach(el => el.classList.toggle('active', el.dataset.anc === anchor));
+        if (s.anchor) anchor = s.anchor;
+        if (s.anchorMode) setAnchorMode(s.anchorMode);
+        if (typeof s.autoIncEnabled === 'boolean') {
+          autoIncEnabled = s.autoIncEnabled;
+          document.getElementById('auto-inc').checked = autoIncEnabled;
         }
         if (s.lineStyle) setLineStyle(s.lineStyle);
         if (typeof s.dark === 'boolean' && s.dark !== dark) toggleTheme();
@@ -1636,7 +1744,11 @@
       localStorage.removeItem(LS_KEY);
       annots = []; selectedIds.clear(); annId = 0;
       caseNum = ''; specimenText = '';
-      imgDataURL = null;
+      imgDataURL = null; baseW = 0; baseH = 0;
+      setLbl('1');  // reset block label counter
+      currentZoom = 100;
+      document.getElementById('zoom-slider').value = 100;
+      document.getElementById('zoom-pct').textContent = '100%';
       if (cv) { cv.dispose(); cv = null; }
       document.getElementById('drop-zone').style.display = '';
       document.getElementById('canvas-wrapper').style.display = 'none';
@@ -1722,6 +1834,28 @@
       cv.renderAll();
     }
 
+    // ═══════════════════════════════════════════════════════
+    //  ZOOM
+    // ═══════════════════════════════════════════════════════
+    function setZoom(pct) {
+      if (!cv || !baseW) return;
+      pct = Math.max(25, Math.min(400, pct));
+      currentZoom = pct;
+      const factor = pct / 100;
+      cv.setZoom(factor);
+      cv.setDimensions({ width: Math.round(baseW * factor), height: Math.round(baseH * factor) });
+      document.getElementById('zoom-slider').value = pct;
+      document.getElementById('zoom-pct').textContent = pct + '%';
+    }
+
+    function adjustZoom(delta) {
+      setZoom(currentZoom + delta);
+    }
+
+    function resetZoom() {
+      setZoom(100);
+    }
+
     function initCanvas(dataURL, name, afterCb) {
       const img = new Image();
       img.onload = () => {
@@ -1738,6 +1872,11 @@
           applyFabricTheme();
           setupEvents();
         }
+        baseW = W; baseH = H;
+        currentZoom = 100;
+        document.getElementById('zoom-slider').value = 100;
+        document.getElementById('zoom-pct').textContent = '100%';
+        cv.setZoom(1);
         cv.setWidth(W); cv.setHeight(H);
         cv.clear();
         annots = []; annId = 0; selectedIds.clear();
@@ -1801,9 +1940,14 @@
           txt.enterEditing(); txt.selectAll();
           cv.renderAll();
           txt.once('editing:exited', () => {
-            const finalLbl = txt.text;
-            annots.push({ id: txt._annId, shape: txt, lbl: null, color, label: finalLbl, kind: 'text' });
-            autoInc(lbl);
+            const finalLbl = txt.text.trim();
+            const ann = { id: txt._annId, shape: txt, lbl: null, color, label: finalLbl, kind: 'text', notes: '' };
+            annots.push(ann);
+            // Only auto-increment if the final text is still a valid block label
+            if (isBlockLabel(finalLbl)) {
+              autoInc(lbl);
+            }
+            // If they changed it to a non-block label, the counter stays at the same value
             refreshList(); refreshCount(); pushHist();
           });
           return;
@@ -1872,7 +2016,7 @@
           cv.add(lblObj);
         }
 
-        annots.push({ id: activeObj._annId, shape: activeObj, lbl: lblObj, color, label: usedLbl, kind: tool });
+        annots.push({ id: activeObj._annId, shape: activeObj, lbl: lblObj, color, label: usedLbl, kind: tool, notes: '' });
         cv.setActiveObject(activeObj);
 
         // Don't auto-increment yet — let the user edit the label or range before
@@ -1884,7 +2028,14 @@
         activeObj = null;
       });
 
-      cv.on('selection:created', syncSidebar);
+      cv.on('selection:created', opt => {
+        const obj = cv.getActiveObject();
+        if (obj && !obj._bg) {
+          const a = annots.find(a => a.shape === obj);
+          if (a) lastSelectedAnn = a;
+        }
+        syncSidebar();
+      });
       cv.on('selection:updated', opt => {
         // Flush pending increment when user moves to a different object
         if (pendingIncLabel !== null) { autoInc(pendingIncLabel); pendingIncLabel = null; }
@@ -1897,6 +2048,15 @@
 
       cv.on('object:moving', opt => {
         const obj = opt.target;
+        // If moving a label in freeform mode, track its offset from the parent rect center
+        if (obj._kind === 'lbl' && anchorMode === 'freeform') {
+          const a = annots.find(a => a.lbl === obj);
+          if (a && a.shape) {
+            const center = a.shape.getCenterPoint();
+            a._freeOffset = { x: obj.left - center.x, y: obj.top - center.y };
+          }
+          return;
+        }
         glueLbl(obj);
         // Shift-constrain: lock movement to the dominant axis for lines
         if (shiftHeld && obj._kind === 'line') {
@@ -1911,15 +2071,36 @@
       });
       cv.on('object:scaling', opt => glueLbl(opt.target));
       cv.on('object:rotating', opt => glueLbl(opt.target));
-      cv.on('object:modified', () => pushHist());
+      cv.on('object:modified', opt => {
+        const obj = opt.target;
+        // When a label is dropped in anchor mode, snap it to the nearest hotpoint
+        if (obj && obj._kind === 'lbl' && anchorMode === 'anchor') {
+          const a = annots.find(a => a.lbl === obj);
+          if (a && a.shape) {
+            anchor = nearestHotpoint(obj, a.shape);
+            glueLbl(a.shape);
+          }
+        }
+        pushHist();
+      });
 
       cv.on('mouse:dblclick', opt => {
         const obj = opt.target;
         if (!obj || obj._bg) return;
+        // Double-clicking a title object opens the title modal instead of inline editing
+        if (obj.isTitle) { openTitle(); return; }
         // Native IText editing — covers text labels AND legend IText objects
         if (obj.type === 'i-text') { obj.enterEditing(); return; }
         const a = annots.find(a => a.shape === obj || a.lbl === obj);
         if (a) openEdit(a, opt.e);
+      });
+
+      // Right-click: paste a copy of the last selected annotation at the cursor position
+      cv.upperCanvasEl.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        if (!lastSelectedAnn) return;
+        const p = cv.getPointer(e);
+        pasteAnnotationAt(lastSelectedAnn, p.x, p.y);
       });
     }
 
@@ -2000,7 +2181,7 @@
           cv.add(lblObj);
         }
 
-        annots.push({ id: cloned._annId, shape: cloned, lbl: lblObj, color, label: usedLbl, kind: ann.kind });
+        annots.push({ id: cloned._annId, shape: cloned, lbl: lblObj, color, label: usedLbl, kind: ann.kind, notes: '' });
         cv.setActiveObject(cloned);
         if (ann.kind === 'rect') autoInc(usedLbl);
         refreshList(); refreshCount(); pushHist();
@@ -2066,9 +2247,33 @@
       if (shape._kind !== 'rect') return;
       const a = annots.find(a => a.shape === shape);
       if (!a || !a.lbl) return;
-      const p = lblPos(shape);
-      a.lbl.set({ left: p.x, top: p.y, originX: p.originX });
+      if (anchorMode === 'freeform' && a._freeOffset) {
+        const center = shape.getCenterPoint();
+        a.lbl.set({ left: center.x + a._freeOffset.x, top: center.y + a._freeOffset.y });
+      } else {
+        const p = lblPos(shape);
+        a.lbl.set({ left: p.x, top: p.y, originX: p.originX });
+      }
       cv.renderAll();
+    }
+
+    // Find which of the 9 anchor hotpoints a label is nearest to
+    function nearestHotpoint(lbl, shape) {
+      const center = shape.getCenterPoint();
+      const W = shape.width * (shape.scaleX || 1);
+      const H = shape.height * (shape.scaleY || 1);
+      const angle = ((shape.angle || 0) * Math.PI) / 180;
+      const cos = Math.cos(angle), sin = Math.sin(angle);
+      let best = 'tl', bestDist = Infinity;
+      Object.entries(ANCHOR_MAP).forEach(([key, a]) => {
+        const localX = a.lx * W / 2 + a.lox;
+        const localY = a.ly * H / 2;
+        const px = center.x + localX * cos - localY * sin;
+        const py = center.y + localX * sin + localY * cos;
+        const d = Math.hypot(lbl.left - px, lbl.top - py);
+        if (d < bestDist) { bestDist = d; best = key; }
+      });
+      return best;
     }
 
     // ═══════════════════════════════════════════════════════
@@ -2195,13 +2400,12 @@
 
     function clearAll() {
       if (!cv) return;
-      if (!confirm('Remove all annotations? The image will remain.')) return;
+      if (!confirm('Remove all annotations? The image, title, and legend will remain.')) return;
       annots.forEach(a => {
         if (a.lbl) cv.remove(a.lbl);
         cv.remove(a.shape);
       });
-      // Also remove legends
-      cv.getObjects().filter(o => o.isLegend).forEach(o => cv.remove(o));
+      // Preserve legend and title objects — only remove annotation shapes
       annots = []; selectedIds.clear(); annId = 0;
       cv.discardActiveObject(); cv.renderAll();
       refreshList(); refreshCount(); pushHist();
@@ -2216,6 +2420,26 @@
       text: `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`,
     };
 
+    const DUP_ICON = `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+    const DEL_ICON = `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+
+    // Returns the display label for an annotation in the sidebar list
+    function getDispLabel(a) {
+      if (a.kind === 'line') return 'Line';
+      if (a.kind === 'rect') {
+        if (!a.lbl) return 'Rect';
+        const lbl = a.label || '';
+        if (isBlockLabel(lbl)) return `Block ${lbl}`;
+        return lbl || 'Rect';
+      }
+      if (a.kind === 'text') {
+        const txt = ((a.shape && a.shape.text) || a.label || '').trim();
+        if (isBlockLabel(txt)) return `Block ${txt}`;
+        return txt.substring(0, 18) || 'Text';
+      }
+      return a.label || '?';
+    }
+
     let lastClickedIdx = null;
 
     function refreshList() {
@@ -2227,17 +2451,22 @@
         el.dataset.id = a.id;
         el.dataset.idx = idx;
         const dc = a.color === '#000000' ? '#888' : a.color;
-        const dispLbl = a.kind === 'text' ? (a.shape.text || a.label).substring(0, 16) : `Block ${a.label}`;
+        const dispLbl = getDispLabel(a);
+
         el.innerHTML = `<div class="ann-dot" style="background:${dc}"></div>
       <span style="opacity:.5;line-height:1">${ICONS[a.kind] || ''}</span>
       <span>${dispLbl}</span>
-      <button class="ann-del" title="Delete this">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>`;
+      <div class="ann-item-actions">
+        <button class="ann-dup" title="Duplicate">${DUP_ICON}</button>
+        <button class="ann-del" title="Delete">${DEL_ICON}</button>
+      </div>`;
 
         el.addEventListener('click', ev => {
+          if (ev.target.closest('.ann-dup')) {
+            duplicateAnnotationFromList(a);
+            return;
+          }
           if (ev.target.closest('.ann-del')) {
-            // Delete this one immediately
             if (a.lbl) cv.remove(a.lbl);
             cv.remove(a.shape);
             annots = annots.filter(x => x !== a);
@@ -2247,17 +2476,14 @@
           }
 
           if (ev.ctrlKey || ev.metaKey) {
-            // Toggle individual
             if (selectedIds.has(a.id)) selectedIds.delete(a.id);
             else selectedIds.add(a.id);
             lastClickedIdx = idx;
           } else if (ev.shiftKey && lastClickedIdx !== null) {
-            // Range select
             const lo = Math.min(lastClickedIdx, idx), hi = Math.max(lastClickedIdx, idx);
             for (let i = lo; i <= hi; i++) selectedIds.add(annots[i].id);
             lastClickedIdx = idx;
           } else {
-            // Normal click: select only this, also select on canvas
             selectedIds.clear();
             selectedIds.add(a.id);
             lastClickedIdx = idx;
@@ -2269,6 +2495,32 @@
         list.appendChild(el);
       });
       refreshLabelKey();
+    }
+
+    // Duplicate an annotation from the sidebar list, offset slightly from original
+    function duplicateAnnotationFromList(ann) {
+      if (!cv) return;
+      const offset = 18;
+      ann.shape.clone(cloned => {
+        cloned._annId = ++annId;
+        const cp = ann.shape.getCenterPoint();
+        cloned.setPositionByOrigin(new fabric.Point(cp.x + offset, cp.y + offset), 'center', 'center');
+        cloned.set({ selectable: true, evented: true, angle: ann.shape.angle || 0 });
+        addCopyControls(cloned);
+        cv.add(cloned);
+        const usedLbl = getLbl();
+        let lblObj = null;
+        if (ann.kind === 'rect' && document.getElementById('show-label').checked) {
+          lblObj = makeLblText(usedLbl, cloned);
+          cv.add(lblObj);
+        }
+        if (ann.kind === 'text') cloned.set('text', usedLbl);
+        annots.push({ id: cloned._annId, shape: cloned, lbl: lblObj,
+          color: ann.color, label: usedLbl, kind: ann.kind, notes: '' });
+        if (ann.kind !== 'line') autoInc(usedLbl);
+        cv.setActiveObject(cloned);
+        refreshList(); refreshCount(); pushHist(); cv.renderAll();
+      }, JSON_PROPS);
     }
 
     function refreshCount() {
@@ -2313,19 +2565,64 @@
       }
     }
 
+    // Returns block annotations (rect with lbl + valid block label, or text with valid block label)
+    function getBlockAnnotations() {
+      return annots.filter(a => {
+        if (a.kind === 'rect' && a.lbl) {
+          return isBlockLabel(a.label);
+        }
+        if (a.kind === 'text') {
+          const txt = ((a.shape && a.shape.text) || a.label || '').trim();
+          return isBlockLabel(txt);
+        }
+        return false;
+      });
+    }
+
     function refreshLabelKey() {
       const tok = getSpecToken();
-      const lines = annots
-        .filter(a => a.kind === 'rect' && a.label)
-        .map(a => formatBlockLabel(a.label, tok));
-      const el = document.getElementById('label-key');
-      el.textContent = lines.length ? lines.join('\n') : '—';
+      const container = document.getElementById('label-key');
+      container.innerHTML = '';
+      const blocks = getBlockAnnotations();
+      if (!blocks.length) {
+        const empty = document.createElement('div');
+        empty.style.cssText = 'font-family:DM Mono,monospace;font-size:10px;color:var(--muted);padding:3px 2px';
+        empty.textContent = '—';
+        container.appendChild(empty);
+        return;
+      }
+      blocks.forEach(a => {
+        const lbl = a.kind === 'text'
+          ? formatBlockLabel((a.shape && a.shape.text) || a.label, tok)
+          : formatBlockLabel(a.label, tok);
+        const row = document.createElement('div');
+        row.className = 'key-entry';
+        const span = document.createElement('span');
+        span.className = 'key-entry-lbl';
+        span.textContent = lbl;
+        const inp = document.createElement('input');
+        inp.className = 'key-entry-notes';
+        inp.type = 'text';
+        inp.value = a.notes || '';
+        inp.placeholder = 'notes…';
+        inp.addEventListener('input', e => { a.notes = e.target.value; });
+        row.appendChild(span);
+        row.appendChild(inp);
+        container.appendChild(row);
+      });
     }
 
     function copyLabelKey() {
-      const text = document.getElementById('label-key').textContent;
-      if (!text || text === '—') return;
-      navigator.clipboard.writeText(text).then(() => {
+      const tok = getSpecToken();
+      const blocks = getBlockAnnotations();
+      if (!blocks.length) return;
+      const lines = blocks.map(a => {
+        const lbl = a.kind === 'text'
+          ? formatBlockLabel((a.shape && a.shape.text) || a.label, tok)
+          : formatBlockLabel(a.label, tok);
+        return a.notes ? `${lbl} ${a.notes}` : lbl;
+      });
+      navigator.clipboard.writeText(lines.join('\n')).then(() => {
         const btn = document.getElementById('key-copy-btn');
         const orig = btn.innerHTML;
         btn.textContent = '✓ Copied';
@@ -2348,7 +2645,7 @@
     }
 
     function snapMeta() {
-      return annots.map(a => ({ id: a.id, color: a.color, label: a.label, kind: a.kind }));
+      return annots.map(a => ({ id: a.id, color: a.color, label: a.label, kind: a.kind, notes: a.notes || '' }));
     }
 
     function pushHist() {
@@ -2416,6 +2713,7 @@
         });
         annots = snap.meta.map(m => ({
           id: m.id, color: m.color, label: m.label, kind: m.kind,
+          notes: m.notes || '',
           shape: byId[m.id] || null, lbl: lblById[m.id] || null,
         })).filter(a => a.shape);
 
@@ -2573,12 +2871,36 @@
           }
           if (ann.kind === 'text') cloned.set('text', usedLbl);
           annots.push({ id: cloned._annId, shape: cloned, lbl: lblObj,
-            color: ann.color, label: usedLbl, kind: ann.kind });
+            color: ann.color, label: usedLbl, kind: ann.kind, notes: '' });
           if (ann.kind !== 'line') autoInc(usedLbl);
           pasted++;
           if (pasted === clipboard.length) { refreshList(); refreshCount(); pushHist(); cv.renderAll(); }
         }, JSON_PROPS);
       });
+    }
+
+    // Paste a copy of ann centered at canvas coordinates (x, y)
+    function pasteAnnotationAt(ann, x, y) {
+      if (!cv) return;
+      ann.shape.clone(cloned => {
+        cloned._annId = ++annId;
+        cloned.setPositionByOrigin(new fabric.Point(x, y), 'center', 'center');
+        cloned.set({ selectable: true, evented: true, angle: ann.shape.angle || 0 });
+        addCopyControls(cloned);
+        cv.add(cloned);
+        const usedLbl = getLbl();
+        let lblObj = null;
+        if (ann.kind === 'rect' && document.getElementById('show-label').checked) {
+          lblObj = makeLblText(usedLbl, cloned);
+          cv.add(lblObj);
+        }
+        if (ann.kind === 'text') cloned.set('text', usedLbl);
+        annots.push({ id: cloned._annId, shape: cloned, lbl: lblObj,
+          color: ann.color, label: usedLbl, kind: ann.kind, notes: '' });
+        if (ann.kind !== 'line') autoInc(usedLbl);
+        cv.setActiveObject(cloned);
+        refreshList(); refreshCount(); pushHist(); cv.renderAll();
+      }, JSON_PROPS);
     }
 
     // ═══════════════════════════════════════════════════════
@@ -2717,6 +3039,7 @@
               if (obj._kind === 'lbl') lblById[obj._annId] = obj;
             });
             annots = s.meta.map(m => ({ id: m.id, color: m.color, label: m.label, kind: m.kind,
+              notes: m.notes || '',
               shape: byId[m.id] || null, lbl: lblById[m.id] || null })).filter(a => a.shape);
             annId = s.annId; setLbl(s.lbl);
             if (s.caseNumber !== undefined) caseNum = s.caseNumber;
