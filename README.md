@@ -1,0 +1,85 @@
+# PathAnnotate
+
+A lightweight, client-side pathology specimen annotation tool.
+
+**Live:** [pathannotate.app](https://pathannotate.app)
+**Repository:** [github.com/PathAnnotate/PathAnnotate](https://github.com/PathAnnotate/PathAnnotate)
+
+---
+
+## Features
+
+- Import gross pathology photos and annotate directly in the browser
+- Draw rectangles, lines, and block label text overlays
+- Automatic block key generation with specimen prefix (e.g. `2A-`, `B1-`)
+- Per-annotation notes; copy the full block key to the clipboard in one click
+- Specimen title displayed on the canvas and used as the export filename
+- Save / load sessions as JSON; export annotated images
+- Undo / redo (Ctrl+Z / Ctrl+Y)
+- Light and dark themes
+- All data stays on your device — nothing is ever transmitted
+
+---
+
+## Usage
+
+| Key | Action |
+|-----|--------|
+| R | Rectangle tool |
+| E | Line (edge) tool |
+| T | Block label text tool |
+| S | Select tool |
+| Del | Delete selected |
+| Ctrl+Z / Ctrl+Y | Undo / Redo |
+| Right-click | Paste last annotation style |
+
+**Workflow**
+
+1. Click **Import Photo** to load a gross image.
+2. Click **Set Title** to enter a case number and specimen (e.g. `2 Left Kidney`).
+   The block label will auto-seed to the correct format (`A`, `B`, `C`… for numeric specimens; `1`, `2`, `3`… for alpha specimens).
+3. Use **Rectangle** or **Block Label** tools to annotate blocks.
+4. Add notes in the **Block Key** panel, then click **Copy** to get the formatted key.
+5. Click **Export Photo** to save the annotated image.
+6. Click **Save** to save the session as JSON for later.
+
+---
+
+## External Libraries
+
+| Library | Version | License | Source |
+|---------|---------|---------|--------|
+| [Fabric.js](https://fabricjs.com) | 5.3.1 | MIT | [cdnjs.cloudflare.com](https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js) |
+| [DM Sans](https://fonts.google.com/specimen/DM+Sans) | — | OFL-1.1 | [fonts.google.com](https://fonts.google.com) |
+| [DM Mono](https://fonts.google.com/specimen/DM+Mono) | — | OFL-1.1 | [fonts.google.com](https://fonts.google.com) |
+
+---
+
+## Privacy
+
+This application runs entirely client-side. No information leaves your device.
+Images, text, and other content remain in the browser's cache and are never sent externally.
+No analytics, tracking, or telemetry of any kind is collected or transmitted.
+
+---
+
+## Changelog
+
+### v1.1.0
+- Block label auto-seeds based on specimen token type:
+  - Numeric specimen (e.g. `2 Left Kidney`) → label starts at `A`
+  - Alpha specimen (e.g. `B Kidney`) → label starts at `1`
+- ANNOTATIONS list and Block Key scroll to the latest added item
+- Fixed: selecting an annotation on canvas no longer incorrectly highlights all items in the sidebar list
+- Fixed: copied block key no longer inserts an extra space after the label dash (`2A-tumor` instead of `2A- tumor`)
+- Added version number display in UI header and statusbar
+- Added Privacy Policy modal
+- Added README and external library attribution
+
+### v1.0.0
+- Initial release: gross pathology image annotation with Fabric.js canvas
+- Rectangle, line, and block label tools
+- Specimen title with case number and specimen prefix
+- Block key panel with per-block notes and clipboard copy
+- Save/load JSON sessions and export annotated images
+- Undo/redo, light/dark theme, drag-and-drop image import
