@@ -2,8 +2,19 @@
 
 A lightweight, client-side pathology specimen annotation tool.
 
-**Live:** [pathannotate.app](https://pathannotate.app)
-**Repository:** [github.com/PathAnnotate/PathAnnotate](https://github.com/PathAnnotate/PathAnnotate)
+**Live:** [pathannotate.app](https://pathannotate.app)  
+**Repository:** [github.com/PathAnnotate/PathAnnotate](https://github.com/PathAnnotate/PathAnnotate)  
+
+---
+
+## Support / Donations
+
+If you find PathAnnotate useful, you can support the project:
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-☕-FFDD00?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/PathAnnotate)  
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-❤️-29ABE0?style=for-the-badge&logo=ko-fi)](https://ko-fi.com/pathannotate)  
+
+**Interac e‑Transfer (Canada only):** `pathannotate@jjjp.ca` (Auto‑Deposit enabled)  
 
 ---
 
@@ -57,8 +68,8 @@ A lightweight, client-side pathology specimen annotation tool.
 
 ## Privacy
 
-This application runs entirely client-side. No information leaves your device.
-Images, text, and other content remain in the browser's cache and are never sent externally.
+This application runs entirely client-side. No information leaves your device.  
+Images, text, and other content remain in the browser's cache and are never sent externally.  
 No analytics, tracking, or telemetry of any kind is collected or transmitted.
 
 ---
