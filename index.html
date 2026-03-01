@@ -424,7 +424,7 @@
   flex: 1;
 }
 
-    .key-copy-btn {
+    .key-copy-btn, .clear-all-ann {
       display: flex;
       align-items: center;
       gap: 3px;
@@ -759,6 +759,7 @@
     }
 
     .ann-del:hover { color: var(--danger) }
+    .clear-all-ann:hover { color: var(--danger) }
     .ann-dup:hover { color: var(--accent) }
 
     /* BLOCK KEY LIST */
@@ -1338,7 +1339,7 @@
       <!-- ── ANNOTATIONS ─────────────────────────────── -->
       <div class="key-row">
         <div class="slabel">Annotations <span style="font-size:9px;text-transform:none;letter-spacing:0"></span></div>
-        <button class="key-copy-btn" onclick="clearAll()">
+        <button class="clear-all-ann" onclick="clearAll()">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
           </svg>
