@@ -858,7 +858,7 @@
       border: 1px solid var(--border);
       color: var(--muted);
       border-radius: 4px;
-      padding: 1px 7px;
+      padding: 1px 4px;
       cursor: pointer;
       font-size: 9.5px;
       font-family: 'DM Mono', monospace;
@@ -1195,6 +1195,23 @@
 
   <div class="main">
     <div class="sidebar">
+      <!-- ── UNDO / REDO ─────────────────────────────── -->
+      <div class="undo-redo-row">
+        <button class="btn btn-flat btn-half" id="undo-btn" onclick="doUndo()" disabled>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="9 14 4 9 9 4" />
+            <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
+          </svg>
+          Undo
+        </button>
+        <button class="btn btn-flat btn-half" id="redo-btn" onclick="doRedo()" disabled>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="15 14 20 9 15 4" />
+            <path d="M4 20v-7a4 4 0 0 1 4-4h12" />
+          </svg>
+          Redo
+        </button>
+      </div>
 
       <!-- ── CANVAS FURNITURE ────────────────────────── -->
       <div class="slabel" title="Case number and specimen name shown on the canvas and used as export filename">Specimen Title</div>
@@ -1259,27 +1276,9 @@
         Select / Move<span class="kbdtag">S</span>
       </button>
 
-      <!-- ── UNDO / REDO ─────────────────────────────── -->
-      <div class="undo-redo-row">
-        <button class="btn btn-flat btn-half" id="undo-btn" onclick="doUndo()" disabled>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <polyline points="9 14 4 9 9 4" />
-            <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
-          </svg>
-          Undo
-        </button>
-        <button class="btn btn-flat btn-half" id="redo-btn" onclick="doRedo()" disabled>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <polyline points="15 14 20 9 15 4" />
-            <path d="M4 20v-7a4 4 0 0 1 4-4h12" />
-          </svg>
-          Redo
-        </button>
-      </div>
-
       <!-- ── ANNOTATIONS ─────────────────────────────── -->
       <div class="slabel">Annotations <span
-          style="font-size:9px;text-transform:none;letter-spacing:0">(Ctrl/Shift+click)</span></div>
+          style="font-size:9px;text-transform:none;letter-spacing:0"></span></div>
       <div class="annot-list" id="annot-list"></div>
 
       <div class="divider"></div>
@@ -1288,9 +1287,9 @@
       <div class="sidebar-section" id="section-linestyle">
         <div class="slabel" title="Stroke dash pattern for rectangles and lines">Line Style</div>
         <div class="line-style-row">
-          <button class="lstyle-btn active" id="lstyle-solid" onclick="setLineStyle('solid')" title="Solid line">— </button>
-          <button class="lstyle-btn" id="lstyle-dashed" onclick="setLineStyle('dashed')" title="Dashed line">- - </button>
-          <button class="lstyle-btn" id="lstyle-dotted" onclick="setLineStyle('dotted')" title="Dotted line">··· </button>
+          <button class="lstyle-btn active" id="lstyle-solid" onclick="setLineStyle('solid')" title="Solid line">—</button>
+          <button class="lstyle-btn" id="lstyle-dashed" onclick="setLineStyle('dashed')" title="Dashed line"> - - </button>
+          <button class="lstyle-btn" id="lstyle-dotted" onclick="setLineStyle('dotted')" title="Dotted line"> ··· </button>
         </div>
       </div>
 
@@ -1368,11 +1367,11 @@
   </div>
 
   <div class="bottom-bar">
-    <div class="stat">Tool: <span id="st-tool">Rectangle</span></div>
+    <div class="stat" >B=Block · T=Text · R=Rect · E=Line · S=Select · Del=Delete · Ctrl+Z/Y=Undo/Redo · DblClick=Edit · RClick=Paste</div>
+    <div class="stat" style="margin-left:auto">Tool: <span id="st-tool">Rectangle</span></div>
     <div class="stat">Objects: <span id="st-count">0</span></div>
-    <div class="stat" id="st-dims"></div>
-    <div class="stat" style="margin-left:auto">B=Block · T=Text · R=Rect · E=Line · S=Select · Del=Delete · Ctrl+Z/Y=Undo/Redo · Right-Click=Quick Copy-Paste</div>
     <div class="bar-sep"></div>
+    <div class="stat" id="st-dims"></div>
     <button class="zoom-btn" onclick="adjustZoom(-25)" title="Zoom out">−</button>
     <input type="range" id="zoom-slider" min="25" max="400" value="100" step="5" oninput="setZoom(+this.value)"
       title="Zoom level">
@@ -1380,10 +1379,10 @@
     <span class="zoom-pct" id="zoom-pct">100%</span>
     <button class="zoom-fit-btn" onclick="resetZoom()" title="Fit canvas to window">Reset</button>
     <div class="bar-sep"></div>
-    <button class="privacy-link" id="ver-stat" onclick="document.getElementById('changelog-modal').classList.add('open')"
-      title="View changelog"></button>
     <button class="privacy-link" onclick="document.getElementById('privacy-modal').classList.add('open')"
       title="Privacy policy">Privacy</button>
+    <button class="privacy-link" id="ver-stat" onclick="document.getElementById('changelog-modal').classList.add('open')"
+      title="View changelog"></button>
   </div>
 
   <!-- Inline label editor -->
@@ -1491,7 +1490,7 @@
       <div style="font-family:'DM Mono',monospace;font-size:11px;line-height:1.7">
         <div style="color:var(--accent);margin-bottom:4px">v1.2.0</div>
         <ul style="margin:0 0 12px 16px;padding:0;color:var(--text)">
-          <li>Added 'Block Key' check for missing or duplicate blocks</li>
+          <li>Added 'Block Key' check to flag missing or duplicate blocks</li>
         </ul>
         <div style="color:var(--accent);margin-bottom:4px">v1.1.0</div>
         <ul style="margin:0 0 12px 16px;padding:0;color:var(--text)">
@@ -1526,7 +1525,7 @@
     // ═══════════════════════════════════════════════════════
     //  VERSION
     // ═══════════════════════════════════════════════════════
-    const VERSION = '1.1.0';
+    const VERSION = '1.2.0';
     document.getElementById('logo-ver').textContent = 'v' + VERSION;
     document.getElementById('ver-stat').textContent = 'v' + VERSION;
 
@@ -2366,26 +2365,29 @@
       cv.on('object:modified', opt => {
         const obj = opt.target;
         // When a label is dropped in anchor mode, snap it to the nearest hotpoint
-        // if (obj && obj._kind === 'lbl' && anchorMode === 'anchor') {
-        //   const a = annots.find(a => a.lbl === obj);
-        //   if (a && a.shape) {
-        //     anchor = nearestHotpoint(obj, a.shape);
-        //     glueLbl(a.shape);
-        //   }
-        // }
-
-        //attempting fix here for block --jesse
         if (obj && obj._kind === 'lbl' && anchorMode === 'anchor') {
           const a = annots.find(a => a.lbl === obj);
-          if (a) snapBlockToRect(a);
+          if (a && a.shape) {
+            anchor = nearestHotpoint(obj, a.shape);
+            glueLbl(a.shape);
+          }
+        }
+
+        //attempting fix here for lbl --jesse
+        if (obj && obj._kind === 'block' && anchorMode === 'anchor') {
+          const a = annots.find(a => a.lbl === obj);
+          if (a && a.shape) {
+            anchor = nearestHotpoint(obj, a.shape);
+            glueLbl(a.shape);
+          }
         }
 
         // When a block label is dropped in anchor mode, snap it to the nearest
         // hotpoint of any rect it is inside.
-        if (obj && obj._kind === 'block' && anchorMode === 'anchor') {
-          const a = annots.find(a => a.shape === obj);
-          if (a) snapBlockToRect(a);
-        }
+        // if (obj && obj._kind === 'block' && anchorMode === 'anchor') {
+        //   const a = annots.find(a => a.shape === obj);
+        //   if (a) snapBlockToRect(a);
+        // }
         pushHist();
       });
 
