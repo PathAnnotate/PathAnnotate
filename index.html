@@ -1828,6 +1828,32 @@
     }
 
     function autoInc(used) {
+      // Build the set of every individual block value already in the key
+      const taken = new Set();
+      getBlockAnnotations().forEach(a => {
+        const lbl = (a.kind === 'text' || a.kind === 'block')
+          ? ((a.shape && a.shape.text) || a.label || '').trim()
+          : (a.label || '').trim();
+        expandBlockLabel(lbl).forEach(v => taken.add(v));
+      });
+
+      // Determine alpha vs numeric from the label that was just used
+      const isAlpha = /[A-Za-z]/.test(used);
+
+      // Scan the sequence from its natural start (A / 1) and return the first gap
+      const MAX = 10000;
+      if (isAlpha) {
+        for (let i = 1; i <= MAX; i++) {
+          const c = alphaFromVal(i, true);
+          if (!taken.has(c)) { setLbl(c); return; }
+        }
+      } else {
+        for (let i = 1; i <= MAX; i++) {
+          if (!taken.has(String(i))) { setLbl(String(i)); return; }
+        }
+      }
+
+      // Absolute fallback — only reached if MAX is exhausted (practically impossible)
       const rm = used.match(/^(\d+)-(\d+)$/);
       if (rm) { setLbl(String(+rm[2] + 1)); return; }
       const nm = used.match(/^(\d+)$/);
