@@ -1317,15 +1317,18 @@
           <button class="lstyle-btn" id="lstyle-dashed" onclick="setLineStyle('dashed')" title="Dashed line"> - - </button>
           <button class="lstyle-btn" id="lstyle-dotted" onclick="setLineStyle('dotted')" title="Dotted line"> ··· </button>
         </div>
+
+        <div class="slabel" title="Width of the stroke in pixels">Stroke Width</div>
+        <div class="slider-row">
+          <div class="slider-lbl"><span>1px</span><span id="sw-val">2px</span><span>12px</span></div>
+          <input type="range" id="stroke-w" min="1" max="12" value="2" title="Drag to change stroke width">
+          </div>
+          
       </div>
 
 
 
-      <div class="slabel" title="Width of the stroke in pixels">Stroke Width</div>
-      <div class="slider-row">
-        <div class="slider-lbl"><span>1px</span><span id="sw-val">2px</span><span>12px</span></div>
-        <input type="range" id="stroke-w" min="1" max="12" value="2" title="Drag to change stroke width">
-      </div>
+
 
       <div class="sidebar-section" id="section-textsize">
         <div class="slabel" title="Font size for block labels and text annotations">Text Size</div>
