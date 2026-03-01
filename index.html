@@ -801,6 +801,14 @@
     .key-entry-notes:focus { border-color: var(--accent) }
     .key-entry-notes::placeholder { color: var(--muted) }
 
+    .key-warn {
+      font-size: 9px;
+      color: #e08020;
+      flex-shrink: 0;
+      cursor: default;
+      line-height: 1;
+    }
+
     /* ZOOM BAR */
     .zoom-bar {
       display: flex;
@@ -2996,6 +3004,87 @@
       });
     }
 
+    // Expand an internal block label into an array of all individual values it covers.
+    // e.g. "B-D" → ["B","C","D"], "1-4" → ["1","2","3","4"], "E" → ["E"]
+    function expandBlockLabel(label) {
+      const alphaRange = label.match(/^([A-Za-z]+)-([A-Za-z]+)$/);
+      const numRange   = label.match(/^(\d+)-(\d+)$/);
+      if (alphaRange) {
+        const start = alphaVal(alphaRange[1].toUpperCase());
+        const end   = alphaVal(alphaRange[2].toUpperCase());
+        const result = [];
+        for (let i = start; i <= end; i++) result.push(alphaFromVal(i, true));
+        return result;
+      }
+      if (numRange) {
+        const result = [];
+        for (let i = +numRange[1]; i <= +numRange[2]; i++) result.push(String(i));
+        return result;
+      }
+      if (/^[A-Za-z]+$/.test(label)) return [label.toUpperCase()];
+      if (/^\d+$/.test(label))       return [label];
+      return [];
+    }
+
+    // Returns a Map<annId, { duplicate, gap, tooltip }> for entries that have QA issues:
+    //   duplicate — a value this entry covers is also covered by at least one other entry.
+    //   gap       — a value this entry covers has a predecessor that is absent from the
+    //               entire block set (implying a missing block in the sequence).
+    function computeBlockKeyWarnings() {
+      const blocks = getBlockAnnotations();
+      if (blocks.length < 2) return new Map();
+
+      const entries = blocks.map(a => ({
+        id: a.id,
+        label: (a.kind === 'text' || a.kind === 'block')
+          ? ((a.shape && a.shape.text) || a.label || '').trim()
+          : (a.label || '').trim(),
+      }));
+
+      // Count how many entries cover each individual value
+      const valueCoverage = new Map();
+      entries.forEach(e => {
+        expandBlockLabel(e.label).forEach(v => {
+          valueCoverage.set(v, (valueCoverage.get(v) || 0) + 1);
+        });
+      });
+      if (!valueCoverage.size) return new Map();
+
+      const allValues = [...valueCoverage.keys()];
+      const isAlpha = /^[A-Za-z]+$/.test(allValues[0]);
+
+      // Build expected full set from 1/A up to the highest value found
+      let expectedSet;
+      if (isAlpha) {
+        const maxIdx = Math.max(...allValues.map(v => alphaVal(v)));
+        expectedSet = [];
+        for (let i = 1; i <= maxIdx; i++) expectedSet.push(alphaFromVal(i, true));
+      } else {
+        const maxNum = Math.max(...allValues.map(Number));
+        expectedSet = [];
+        for (let i = 1; i <= maxNum; i++) expectedSet.push(String(i));
+      }
+      const missingValues = new Set(expectedSet.filter(v => !valueCoverage.has(v)));
+
+      const warnings = new Map();
+      entries.forEach(e => {
+        const vals = expandBlockLabel(e.label);
+        const hasDuplicate = vals.some(v => (valueCoverage.get(v) || 0) > 1);
+        const hasGap = vals.some(v => {
+          const prev = isAlpha ? prevAlpha(v) : String(+v - 1);
+          const prevIdx = isAlpha ? alphaVal(prev) : +prev;
+          return prevIdx >= 1 && missingValues.has(prev);
+        });
+        if (hasDuplicate || hasGap) {
+          const parts = [];
+          if (hasDuplicate) parts.push('Duplicate: value already covered by another entry');
+          if (hasGap) parts.push('Gap: a preceding value is missing from the sequence');
+          warnings.set(e.id, { duplicate: hasDuplicate, gap: hasGap, tooltip: parts.join(' · ') });
+        }
+      });
+      return warnings;
+    }
+
     function refreshLabelKey(scrollEnd) {
       const tok = getSpecToken();
       const container = document.getElementById('label-key');
@@ -3008,12 +3097,21 @@
         container.appendChild(empty);
         return;
       }
+      const warnings = computeBlockKeyWarnings();
       blocks.forEach(a => {
         const lbl = (a.kind === 'text' || a.kind === 'block')
           ? formatBlockLabel((a.shape && a.shape.text) || a.label, tok)
           : formatBlockLabel(a.label, tok);
         const row = document.createElement('div');
         row.className = 'key-entry';
+        const w = warnings.get(a.id);
+        if (w) {
+          const icon = document.createElement('span');
+          icon.className = 'key-warn';
+          icon.textContent = '⚠';
+          icon.title = w.tooltip;
+          row.appendChild(icon);
+        }
         const span = document.createElement('span');
         span.className = 'key-entry-lbl';
         span.textContent = lbl;
