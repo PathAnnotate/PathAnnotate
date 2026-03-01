@@ -2787,23 +2787,23 @@
       const selObj  = cv && cv.getActiveObject();
       const selKind = (selObj && !selObj._bg) ? selObj._kind : null;
 
-      let greyStroke, greyTextSize, greyBlock;
+      let greyStroke, greyTextSize, greyBlock, greyAttach;
 
       if (tool === 'select') {
         // In select mode the selected object's kind drives everything.
         // Nothing selected → all sections available.
         switch (selKind) {
           case 'line':
-            greyStroke = false; greyTextSize = true;  greyBlock = true;  break;
+            greyStroke = false; greyTextSize = true;  greyBlock = true; greyAttach = false;  break;
           case 'text':
-            greyStroke = true;  greyTextSize = false; greyBlock = true;  break;
+            greyStroke = true;  greyTextSize = false; greyBlock = true;  greyAttach = false; break;
           case 'block':
-            greyStroke = true;  greyTextSize = false;  greyBlock = false; break;
+            greyStroke = true;  greyTextSize = false;  greyBlock = false; greyAttach = false; break;
           case 'rect':
           case 'lbl':
-            greyStroke = false; greyTextSize = false; greyBlock = false; break;
+            greyStroke = false; greyTextSize = false; greyBlock = false; greyAttach = false; break;
           default: // nothing selected
-            greyStroke = false; greyTextSize = false; greyBlock = false;
+            greyStroke = false; greyTextSize = false; greyBlock = false; greyAttach = false;
         }
       } else {
         // Drawing-tool mode: the active tool drives the greying.
@@ -2814,12 +2814,14 @@
         greyStroke   = (tool === 'block') || (tool === 'text');
         greyTextSize = (tool === 'block') || (tool === 'line');
         greyBlock    = (tool === 'line')  || (tool === 'text');
+        greyAttach   = (tool === 'block');
       }
 
       document.getElementById('section-linestyle').classList.toggle('greyed', greyStroke);
       document.getElementById('section-textsize').classList.toggle('greyed', greyTextSize);
       document.getElementById('section-blocklabel').classList.toggle('greyed', greyBlock);
       document.getElementById('section-labelpos').classList.toggle('greyed', greyBlock);
+      document.getElementById('show-label').classList.toggle('greyed', greyAttach);
     }
 
     // ═══════════════════════════════════════════════════════
