@@ -2165,6 +2165,10 @@
             if (!finalLbl) { cv.remove(txt); annId--; refreshList(); refreshCount(); return; }
             const ann = { id: txt._annId, shape: txt, lbl: null, color, label: finalLbl, kind: 'text', notes: '' };
             annots.push(ann);
+            // annots.push is deferred to here (after editing:exited), so
+            // selection:created couldn't find this ann; set lastSelectedAnn
+            // now so right-click paste immediately targets the new text object.
+            lastSelectedAnn = ann;
             refreshList(true); refreshCount(); pushHist();
           });
           return;
@@ -2546,13 +2550,25 @@
       const obj = ann.shape;
       const cp = obj.getCenterPoint();
       const parentRect = rectContaining(cp.x, cp.y);
-      if (!parentRect) return;
-      // Find nearest hotpoint and position accordingly
-      const hp = nearestHotpoint(obj, parentRect.shape);
-      const p = lblPosForAnchor(parentRect.shape, hp);
-      obj.set({ left: p.x, top: p.y, originX: p.originX });
+      if (!parentRect) {
+        ann._anchorRect = null; ann._anchorPoint = null; ann._anchorOffset = null;
+        return;
+      }
       ann._anchorRect = parentRect.id;
-      ann._anchorPoint = hp;
+      if (parentRect.lbl) {
+        // Labeled rect: snap to nearest of the 9 hotpoints (same as attached lbl behaviour)
+        const hp = nearestHotpoint(obj, parentRect.shape);
+        const p  = lblPosForAnchor(parentRect.shape, hp);
+        obj.set({ left: p.x, top: p.y, originX: p.originX });
+        ann._anchorPoint  = hp;
+        ann._anchorOffset = null;
+      } else {
+        // Unlabeled rect: keep the block label exactly where it was dropped, but
+        // track its offset from the rect's centre so it follows when the rect moves.
+        const rc = parentRect.shape.getCenterPoint();
+        ann._anchorPoint  = null;
+        ann._anchorOffset = { x: cp.x - rc.x, y: cp.y - rc.y };
+      }
       cv.renderAll();
     }
 
@@ -2581,8 +2597,18 @@
       if (!rectAnn) return;
       annots.forEach(a => {
         if (a.kind !== 'block' || a._anchorRect !== rectAnn.id) return;
-        const p = lblPosForAnchor(rectShape, a._anchorPoint || 'tl');
-        a.shape.set({ left: p.x, top: p.y, originX: p.originX });
+        if (a._anchorPoint) {
+          // Labeled-rect case: keep the block at the tracked hotpoint
+          const p = lblPosForAnchor(rectShape, a._anchorPoint);
+          a.shape.set({ left: p.x, top: p.y, originX: p.originX });
+        } else if (a._anchorOffset) {
+          // Unlabeled-rect case: maintain the fixed offset from the rect's centre
+          const rc = rectShape.getCenterPoint();
+          a.shape.setPositionByOrigin(
+            new fabric.Point(rc.x + a._anchorOffset.x, rc.y + a._anchorOffset.y),
+            'center', 'center'
+          );
+        }
       });
     }
 
@@ -2708,10 +2734,18 @@
 
     function updateToolbarState() {
       const showLabel = document.getElementById('show-label') && document.getElementById('show-label').checked;
-      const greyLine  = (tool === 'block' || tool === 'text');
-      const greyBlock = (tool === 'line') || (tool === 'rect' && !showLabel) || (tool === 'text');
-      document.getElementById('section-linestyle').classList.toggle('greyed', greyLine);
-      document.getElementById('section-textsize').classList.toggle('greyed', greyLine);
+      const selObj  = cv && cv.getActiveObject();
+      const selKind = (selObj && !selObj._bg) ? selObj._kind : null;
+      // Stroke Width: greyed for block/text tool, or when a text/block object is selected
+      const greyStroke   = (tool === 'block') || (tool === 'text')
+                         || (selKind === 'text') || (selKind === 'block');
+      // Text Size: greyed only for block tool (text tool and text selection should have it)
+      const greyTextSize = (tool === 'block') || (selKind === 'block');
+      // Block Label section: greyed for line tool and text tool, but NEVER for rect tool
+      // (the checkbox must always be reachable when drawing rectangles)
+      const greyBlock = (tool === 'line') || (tool === 'text');
+      document.getElementById('section-linestyle').classList.toggle('greyed', greyStroke);
+      document.getElementById('section-textsize').classList.toggle('greyed', greyTextSize);
       document.getElementById('section-blocklabel').classList.toggle('greyed', greyBlock);
       document.getElementById('section-labelpos').classList.toggle('greyed', greyBlock);
     }
@@ -2735,8 +2769,9 @@
         document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('active', s.title === c));
         color = c;
       }
-      // Update block label input when a block/lbl annotation is selected
-      if (obj._kind === 'block' || obj._kind === 'text') {
+      // Update block label input when a block/lbl/rect annotation is selected.
+      // Text objects are free-form labels, not block labels — do not sync them.
+      if (obj._kind === 'block') {
         const a = annots.find(a => a.shape === obj);
         if (a && a.label) setLbl(a.label);
       } else if (obj._kind === 'lbl') {
@@ -2751,6 +2786,8 @@
         const elId = +el.dataset.id;
         el.classList.toggle('sel', selectedIds.has(elId));
       });
+      // Re-evaluate toolbar greying based on selected object kind
+      updateToolbarState();
     }
 
     // ═══════════════════════════════════════════════════════
