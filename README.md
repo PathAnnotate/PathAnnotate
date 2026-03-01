@@ -11,19 +11,19 @@ A lightweight, client-side pathology specimen annotation tool.
 
 If you find PathAnnotate useful, you can support the project:
 
-<a href="https://www.buymeacoffee.com/PathAnnotate" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>  
+<a href="https://www.buymeacoffee.com/PathAnnotate" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 36px !important;" ></a>  
 <a href='https://ko-fi.com/T6T61V3JID' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi5.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 
-`pathannotate@jjjp.ca` (Interac Auto‑Deposit)  
+`pathannotate@jjjp.ca` 
 
 ---
 
 ## Features
 
-- Import gross pathology photos and annotate directly in the browser
+- Import gross pathology photos and annotate directly in the browser (or install as web app!)
 - Draw rectangles, lines, and block label text overlays
 - Automatic block key generation with specimen prefix (e.g. `2A-`, `B1-`)
-- Per-annotation notes; copy the full block key to the clipboard in one click
+- Per-annotation notes; copy the full block key to the clipboard in one click to use in your gross description
 - Specimen title displayed on the canvas and used as the export filename
 - Save / load sessions as JSON; export annotated images
 - Undo / redo (Ctrl+Z / Ctrl+Y)
@@ -37,8 +37,9 @@ If you find PathAnnotate useful, you can support the project:
 | Key | Action |
 |-----|--------|
 | R | Rectangle tool |
-| E | Line (edge) tool |
-| T | Block label text tool |
+| E | Line tool |
+| B | Block label tool |
+| T | Text tool |
 | S | Select tool |
 | Del | Delete selected |
 | Ctrl+Z / Ctrl+Y | Undo / Redo |
