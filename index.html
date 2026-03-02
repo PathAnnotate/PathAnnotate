@@ -374,6 +374,7 @@
       min-width: 0;
       background: var(--inp);
       border: 1px solid var(--border);
+      text-align: center;
       color: var(--text);
       border-radius: 5px;
       padding: 4px 6px;
@@ -1304,11 +1305,12 @@
             title="Drag label freely; position is stored relative to rectangle centre">↗ Freeform</button>
         </div>
       </div>
-
+      <div class="check-row">
       <label class="check-attach" title="Automatically attach a block label to each new rectangle">
         <input type="checkbox" id="show-label" checked onchange="saveSettings();updateToolbarState()">
-        <span>Automatically add to new rectangles</span>
+        <span>Include with new rectangles</span>
       </label>
+    </div>
       
       
       <!-- ── STYLE CONTROLS ──────────────────────────── -->
